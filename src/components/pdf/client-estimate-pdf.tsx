@@ -6,6 +6,25 @@ import {
   Image,
   StyleSheet,
 } from "@react-pdf/renderer"
+import {
+  FONT_FAMILY,
+  fontSize,
+  fontWeight,
+  lineHeight,
+  spacing,
+  colors,
+  borderRadius,
+  PAGE_MARGIN,
+  PAGE_MARGIN_BOTTOM,
+  formatCurrency,
+} from "./pdf-design-system"
+import {
+  PDFPageHeader,
+  PDFPageFooter,
+  PDFAccentBar,
+  PDFCategoryBlock,
+} from "./pdf-shared-components"
+import type { TermsSection } from "@/types/proposal"
 
 interface CategorySummary {
   category: string
@@ -31,12 +50,12 @@ interface ClientEstimatePDFProps {
   logoPath?: string
   primaryColor?: string
   accentColor?: string
-  /** PRO+ gets terms/signature pages */
+  /** STANDARD+ gets terms/signature pages */
   includeTerms?: boolean
-}
-
-function fmt(amount: number) {
-  return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  /** Structured terms sections (dynamic, user-editable) */
+  termsStructured?: TermsSection[]
+  /** Contract mode switches language */
+  isContract?: boolean
 }
 
 export function ClientEstimatePDF({
@@ -57,290 +76,309 @@ export function ClientEstimatePDF({
   primaryColor = "#E94560",
   accentColor = "#1A1A2E",
   includeTerms = false,
+  termsStructured,
+  isContract = false,
 }: ClientEstimatePDFProps) {
+  const pdfColors = {
+    primary: primaryColor,
+    secondary: accentColor,
+    accent: accentColor,
+    text: colors.gray800,
+    background: colors.white,
+  }
+
+  const documentLabel = isContract ? "Construction Agreement" : "Project Estimate"
+  const acceptanceTitle = isContract
+    ? "Acceptance & Authorization to Proceed"
+    : "Acceptance & Authorization"
+
   const s = StyleSheet.create({
     // ─── Cover Page ───
     coverPage: {
       padding: 0,
-      backgroundColor: "#FFFFFF",
-      fontFamily: "Helvetica",
+      backgroundColor: colors.white,
+      fontFamily: FONT_FAMILY,
     },
     coverBanner: {
       backgroundColor: primaryColor,
-      paddingVertical: 50,
+      paddingVertical: 56,
       paddingHorizontal: 60,
-      marginBottom: 0,
     },
     coverLogo: {
-      width: 72,
-      height: 72,
+      width: 80,
+      height: 80,
       objectFit: "contain" as const,
-      marginBottom: 16,
+      marginBottom: spacing[4],
+      borderWidth: 2,
+      borderColor: "rgba(255,255,255,0.2)",
+      borderRadius: borderRadius.md,
     },
     coverCompany: {
-      fontSize: 28,
-      fontWeight: "bold",
-      color: "#FFFFFF",
-      marginBottom: 4,
+      fontSize: fontSize["8xl"],
+      fontWeight: fontWeight.bold,
+      color: colors.white,
+      marginBottom: 3,
     },
     coverTagline: {
-      fontSize: 12,
-      color: "rgba(255,255,255,0.8)",
-      marginBottom: 0,
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.normal,
+      color: "rgba(255,255,255,0.75)",
     },
+
     coverBody: {
       paddingHorizontal: 60,
-      paddingTop: 50,
+      paddingTop: spacing[10],
     },
     coverLabel: {
-      fontSize: 11,
-      color: "#9CA3AF",
+      fontSize: fontSize.lg,
+      fontWeight: fontWeight.medium,
+      color: colors.gray400,
       textTransform: "uppercase" as const,
-      letterSpacing: 1.5,
-      marginBottom: 6,
+      letterSpacing: 2,
+      marginBottom: spacing[2],
     },
     coverTitle: {
-      fontSize: 24,
-      fontWeight: "bold",
+      fontSize: fontSize["6xl"],
+      fontWeight: fontWeight.bold,
       color: accentColor,
-      marginBottom: 30,
+      marginBottom: spacing[8],
     },
+
+    // Metadata grid
     coverMeta: {
-      flexDirection: "row",
-      gap: 40,
-      marginBottom: 50,
+      flexDirection: "row" as const,
+      gap: spacing[8],
+      marginBottom: spacing[10],
     },
     coverMetaBlock: {
       flex: 1,
     },
     coverMetaLabel: {
-      fontSize: 9,
-      color: "#9CA3AF",
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.medium,
+      color: colors.gray400,
       textTransform: "uppercase" as const,
       letterSpacing: 1,
-      marginBottom: 4,
+      marginBottom: spacing[1],
     },
     coverMetaValue: {
-      fontSize: 12,
-      color: "#374151",
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.medium,
+      color: colors.gray700,
     },
-    coverTotalBlock: {
+
+    // Total card
+    coverTotalCard: {
       backgroundColor: `${primaryColor}08`,
-      borderWidth: 1,
-      borderColor: `${primaryColor}20`,
-      borderRadius: 8,
-      padding: 24,
+      borderWidth: 1.5,
+      borderColor: `${primaryColor}25`,
+      borderRadius: borderRadius.lg,
+      paddingVertical: spacing[6],
+      paddingHorizontal: spacing[8],
       alignItems: "center" as const,
-      marginBottom: 50,
+      marginBottom: spacing[10],
     },
     coverTotalLabel: {
-      fontSize: 11,
-      color: "#9CA3AF",
+      fontSize: fontSize.lg,
+      fontWeight: fontWeight.medium,
+      color: colors.gray400,
       textTransform: "uppercase" as const,
-      letterSpacing: 1.5,
-      marginBottom: 8,
+      letterSpacing: 2,
+      marginBottom: spacing[2],
     },
     coverTotalAmount: {
-      fontSize: 36,
-      fontWeight: "bold",
+      fontSize: fontSize["9xl"],
+      fontWeight: fontWeight.bold,
       color: primaryColor,
     },
+
+    // Contact footer
     coverContact: {
       position: "absolute" as const,
-      bottom: 50,
+      bottom: 48,
       left: 60,
       right: 60,
-      flexDirection: "row",
-      justifyContent: "space-between",
+      flexDirection: "row" as const,
+      justifyContent: "space-between" as const,
       borderTopWidth: 1,
-      borderTopColor: "#E5E7EB",
-      paddingTop: 16,
+      borderTopColor: colors.gray200,
+      paddingTop: spacing[4],
     },
     coverContactText: {
-      fontSize: 9,
-      color: "#6B7280",
+      fontSize: fontSize.base,
+      color: colors.gray500,
     },
 
     // ─── Content Pages ───
     page: {
-      padding: 50,
-      paddingBottom: 70,
-      fontSize: 10,
-      fontFamily: "Helvetica",
-      color: "#374151",
-    },
-    pageHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 24,
-      paddingBottom: 12,
-      borderBottomWidth: 2,
-      borderBottomColor: primaryColor,
-    },
-    pageHeaderLogo: {
-      width: 36,
-      height: 36,
-      objectFit: "contain" as const,
-    },
-    pageHeaderTitle: {
-      fontSize: 8,
-      color: "#9CA3AF",
-    },
-    sectionTitle: {
-      fontSize: 14,
-      fontWeight: "bold",
-      color: accentColor,
-      marginBottom: 16,
-      paddingBottom: 6,
-      borderBottomWidth: 1,
-      borderBottomColor: "#E5E7EB",
-    },
-    descriptionText: {
-      fontSize: 10,
-      lineHeight: 1.6,
-      color: "#374151",
-      marginBottom: 24,
+      padding: PAGE_MARGIN,
+      paddingBottom: PAGE_MARGIN_BOTTOM,
+      fontSize: fontSize.md,
+      fontFamily: FONT_FAMILY,
+      color: colors.gray700,
     },
 
-    // ─── Category Blocks ───
-    categoryBlock: {
-      marginBottom: 20,
-    },
-    categoryHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      backgroundColor: `${primaryColor}10`,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: 4,
-      marginBottom: 6,
-    },
-    categoryName: {
-      fontSize: 12,
-      fontWeight: "bold",
+    sectionTitle: {
+      fontSize: fontSize["2xl"],
+      fontWeight: fontWeight.bold,
       color: accentColor,
+      marginBottom: spacing[4],
+      paddingBottom: spacing[2],
+      borderBottomWidth: 1,
+      borderBottomColor: colors.gray200,
     },
-    categoryTotal: {
-      fontSize: 12,
-      fontWeight: "bold",
-      color: primaryColor,
-    },
-    categoryNarrative: {
-      fontSize: 10,
-      lineHeight: 1.5,
-      color: "#6B7280",
-      paddingHorizontal: 12,
+    descriptionText: {
+      fontSize: fontSize.md,
+      lineHeight: lineHeight.relaxed,
+      color: colors.gray700,
+      marginBottom: spacing[6],
     },
 
     // ─── Pricing Summary ───
-    pricingSummary: {
-      marginTop: 30,
-      borderTopWidth: 2,
-      borderTopColor: primaryColor,
-      paddingTop: 16,
-    },
     summaryRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
+      flexDirection: "row" as const,
+      justifyContent: "space-between" as const,
       paddingVertical: 4,
-      paddingHorizontal: 12,
+      paddingHorizontal: spacing[3],
     },
     summaryLabel: {
-      fontSize: 10,
-      color: "#6B7280",
+      fontSize: fontSize.md,
+      color: colors.gray500,
     },
     summaryValue: {
-      fontSize: 10,
-      fontWeight: "bold",
-      color: "#374151",
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.semibold,
+      color: colors.gray700,
     },
     summaryDivider: {
       borderBottomWidth: 1,
-      borderBottomColor: "#E5E7EB",
-      marginVertical: 4,
-      marginHorizontal: 12,
+      borderBottomColor: colors.gray200,
+      marginVertical: spacing[1],
+      marginHorizontal: spacing[3],
     },
-    grandTotalRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      paddingVertical: 10,
-      paddingHorizontal: 12,
+    grandTotalBar: {
+      flexDirection: "row" as const,
+      justifyContent: "space-between" as const,
+      alignItems: "center" as const,
       backgroundColor: `${primaryColor}10`,
-      borderRadius: 4,
-      marginTop: 4,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      borderRadius: borderRadius.md,
+      marginTop: spacing[2],
     },
     grandTotalLabel: {
-      fontSize: 14,
-      fontWeight: "bold",
+      fontSize: fontSize["2xl"],
+      fontWeight: fontWeight.bold,
       color: accentColor,
     },
     grandTotalValue: {
-      fontSize: 14,
-      fontWeight: "bold",
+      fontSize: fontSize["2xl"],
+      fontWeight: fontWeight.bold,
       color: primaryColor,
     },
 
-    // ─── Terms Page ───
-    termsSection: {
-      marginBottom: 20,
+    // ─── Terms ───
+    termsItem: {
+      marginBottom: spacing[5],
+    },
+    termsItemHeader: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      marginBottom: spacing[2],
+    },
+    termsNumber: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: primaryColor,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      marginRight: spacing[3],
+    },
+    termsNumberText: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.bold,
+      color: colors.white,
     },
     termsTitle: {
-      fontSize: 12,
-      fontWeight: "bold",
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.semibold,
       color: accentColor,
-      marginBottom: 8,
     },
-    termsText: {
-      fontSize: 9,
-      lineHeight: 1.6,
-      color: "#6B7280",
+    termsContent: {
+      fontSize: fontSize.base,
+      lineHeight: lineHeight.relaxed,
+      color: colors.gray500,
+      paddingLeft: 34, // Align with text after number circle
+    },
+    termsNotice: {
+      backgroundColor: `${primaryColor}08`,
+      borderWidth: 1,
+      borderColor: `${primaryColor}20`,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      marginBottom: spacing[6],
+    },
+    termsNoticeText: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.medium,
+      color: primaryColor,
+      textAlign: "center" as const,
     },
 
-    // ─── Signature Page ───
-    sigBlock: {
-      marginTop: 20,
-      borderTopWidth: 1,
-      borderTopColor: "#E5E7EB",
-      paddingTop: 16,
-    },
+    // ─── Signature ───
     sigRow: {
-      flexDirection: "row",
-      gap: 40,
-      marginTop: 40,
+      flexDirection: "row" as const,
+      gap: spacing[10],
+      marginTop: spacing[10],
     },
     sigColumn: {
       flex: 1,
     },
+    sigTitle: {
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.semibold,
+      color: accentColor,
+      marginBottom: spacing[10],
+    },
     sigLine: {
       borderBottomWidth: 1,
-      borderBottomColor: "#374151",
-      marginBottom: 6,
+      borderBottomColor: colors.gray700,
+      marginBottom: spacing[1],
       height: 30,
     },
     sigLabel: {
-      fontSize: 9,
-      color: "#9CA3AF",
+      fontSize: fontSize.sm,
+      color: colors.gray400,
     },
-
-    // ─── Footer ───
-    footer: {
-      position: "absolute" as const,
-      bottom: 30,
-      left: 50,
-      right: 50,
+    contractNotice: {
+      backgroundColor: `${accentColor}08`,
+      borderWidth: 1.5,
+      borderColor: `${accentColor}30`,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      marginBottom: spacing[6],
+    },
+    contractNoticeText: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+      color: accentColor,
       textAlign: "center" as const,
-      fontSize: 7,
-      color: "#D1D5DB",
+      textTransform: "uppercase" as const,
+      letterSpacing: 1,
     },
   })
 
-  // Strip project location / permit note from description for client display
+  // Clean description for client display
   const cleanDescription = description
     .split("\n\nPROJECT LOCATION:")[0]
     .split("\n\nPERMIT NOTE:")[0]
     .trim()
+
+  // Filter to enabled terms only
+  const enabledTerms = (termsStructured || []).filter((t) => t.enabled)
 
   return (
     <Document>
@@ -352,8 +390,10 @@ export function ClientEstimatePDF({
           {companyTagline && <Text style={s.coverTagline}>{companyTagline}</Text>}
         </View>
 
+        <PDFAccentBar color={accentColor} height={4} marginVertical={0} />
+
         <View style={s.coverBody}>
-          <Text style={s.coverLabel}>Project Estimate</Text>
+          <Text style={s.coverLabel}>{documentLabel}</Text>
           <Text style={s.coverTitle}>{title}</Text>
 
           <View style={s.coverMeta}>
@@ -373,29 +413,30 @@ export function ClientEstimatePDF({
             </View>
           </View>
 
-          <View style={s.coverTotalBlock}>
+          <View style={s.coverTotalCard}>
             <Text style={s.coverTotalLabel}>Total Investment</Text>
-            <Text style={s.coverTotalAmount}>{fmt(clientTotal)}</Text>
+            <Text style={s.coverTotalAmount}>{formatCurrency(clientTotal)}</Text>
           </View>
         </View>
 
         <View style={s.coverContact}>
           <Text style={s.coverContactText}>
-            {[companyName, companyPhone].filter(Boolean).join(" | ")}
+            {[companyName, companyPhone].filter(Boolean).join("  |  ")}
           </Text>
           <Text style={s.coverContactText}>
-            {[companyEmail, companyAddress].filter(Boolean).join(" | ")}
+            {[companyEmail, companyAddress].filter(Boolean).join("  |  ")}
           </Text>
         </View>
       </Page>
 
       {/* ═══ PAGE 2: SCOPE & PRICING ═══ */}
       <Page size="A4" style={s.page}>
-        {/* Page header */}
-        <View style={s.pageHeader}>
-          {logoPath && <Image src={logoPath} style={s.pageHeaderLogo} />}
-          <Text style={s.pageHeaderTitle}>{title} — Scope &amp; Pricing</Text>
-        </View>
+        <PDFPageHeader
+          logoPath={logoPath}
+          companyName={companyName}
+          pageLabel="Scope & Pricing"
+          color={primaryColor}
+        />
 
         {/* Project Overview */}
         <Text style={s.sectionTitle}>Project Overview</Text>
@@ -404,152 +445,173 @@ export function ClientEstimatePDF({
         {/* Scope of Work */}
         <Text style={s.sectionTitle}>Scope of Work</Text>
         {categories.map((cat) => (
-          <View key={cat.category} style={s.categoryBlock} wrap={false}>
-            <View style={s.categoryHeader}>
-              <Text style={s.categoryName}>{cat.category}</Text>
-              <Text style={s.categoryTotal}>{fmt(cat.clientTotal)}</Text>
-            </View>
-            {cat.narrative ? (
-              <Text style={s.categoryNarrative}>{cat.narrative}</Text>
-            ) : (
-              <Text style={s.categoryNarrative}>
-                Includes {cat.itemCount} item{cat.itemCount !== 1 ? "s" : ""} — materials, labor, and installation.
-              </Text>
-            )}
-          </View>
+          <PDFCategoryBlock
+            key={cat.category}
+            category={cat.category}
+            narrative={cat.narrative}
+            clientTotal={cat.clientTotal}
+            itemCount={cat.itemCount}
+            c={pdfColors}
+          />
         ))}
 
         {/* Pricing Summary */}
-        <View style={s.pricingSummary}>
-          <Text style={{ ...s.sectionTitle, borderBottomWidth: 0, marginBottom: 8 }}>
+        <View style={{ marginTop: spacing[6], borderTopWidth: 2, borderTopColor: primaryColor, paddingTop: spacing[4] }}>
+          <Text style={{ ...s.sectionTitle, borderBottomWidth: 0, marginBottom: spacing[2] }}>
             Investment Summary
           </Text>
           {categories.map((cat) => (
             <View key={cat.category} style={s.summaryRow}>
               <Text style={s.summaryLabel}>{cat.category}</Text>
-              <Text style={s.summaryValue}>{fmt(cat.clientTotal)}</Text>
+              <Text style={s.summaryValue}>{formatCurrency(cat.clientTotal)}</Text>
             </View>
           ))}
           <View style={s.summaryDivider} />
           <View style={s.summaryRow}>
             <Text style={s.summaryLabel}>Subtotal</Text>
-            <Text style={s.summaryValue}>{fmt(clientSubtotal)}</Text>
+            <Text style={s.summaryValue}>{formatCurrency(clientSubtotal)}</Text>
           </View>
           {taxAmount > 0 && (
             <View style={s.summaryRow}>
               <Text style={s.summaryLabel}>Tax</Text>
-              <Text style={s.summaryValue}>{fmt(taxAmount)}</Text>
+              <Text style={s.summaryValue}>{formatCurrency(taxAmount)}</Text>
             </View>
           )}
-          <View style={s.grandTotalRow}>
+          <View style={s.grandTotalBar}>
             <Text style={s.grandTotalLabel}>Total Investment</Text>
-            <Text style={s.grandTotalValue}>{fmt(clientTotal)}</Text>
+            <Text style={s.grandTotalValue}>{formatCurrency(clientTotal)}</Text>
           </View>
         </View>
 
-        <Text style={s.footer}>Generated by EstimAI Pro — estimaipro.com</Text>
+        <PDFPageFooter companyName={companyName} />
       </Page>
 
-      {/* ═══ PAGE 3: TERMS (PRO+ only) ═══ */}
-      {includeTerms && (
+      {/* ═══ PAGE 3: TERMS (STANDARD+ only) ═══ */}
+      {includeTerms && enabledTerms.length > 0 && (
         <Page size="A4" style={s.page}>
-          <View style={s.pageHeader}>
-            {logoPath && <Image src={logoPath} style={s.pageHeaderLogo} />}
-            <Text style={s.pageHeaderTitle}>{title} — Terms &amp; Conditions</Text>
-          </View>
+          <PDFPageHeader
+            logoPath={logoPath}
+            companyName={companyName}
+            pageLabel="Terms & Conditions"
+            color={primaryColor}
+          />
 
           <Text style={s.sectionTitle}>Terms &amp; Conditions</Text>
 
-          <View style={s.termsSection}>
-            <Text style={s.termsTitle}>1. Payment Terms</Text>
-            <Text style={s.termsText}>
-              A deposit of 30% of the total project cost is required prior to commencement of work. Progress payments shall be made at milestones agreed upon by both parties. Final payment is due upon substantial completion and client walkthrough. All payments are due within 15 days of invoice date.
+          {/* Validity notice */}
+          <View style={s.termsNotice}>
+            <Text style={s.termsNoticeText}>
+              This estimate is valid for 30 days from the date shown above.
             </Text>
           </View>
 
-          <View style={s.termsSection}>
-            <Text style={s.termsTitle}>2. Project Timeline</Text>
-            <Text style={s.termsText}>
-              Work shall commence within 14 business days of contract signing and receipt of deposit, subject to material availability and permitting requirements. Any delays caused by weather, material shortages, or client-requested changes may extend the timeline. Contractor shall keep client informed of progress and any anticipated schedule changes.
+          {/* Contract preamble */}
+          {isContract && (
+            <Text style={{ ...s.descriptionText, marginBottom: spacing[5] }}>
+              This Construction Agreement (&quot;Agreement&quot;) is entered into between the
+              Contractor identified on the cover page and the Client. Both parties agree to the
+              scope of work, pricing, and the following terms and conditions.
             </Text>
-          </View>
+          )}
 
-          <View style={s.termsSection}>
-            <Text style={s.termsTitle}>3. Change Orders</Text>
-            <Text style={s.termsText}>
-              Any changes to the scope of work after contract signing shall be documented in writing as a Change Order. Change Orders will include a description of the additional or modified work, associated costs, and impact to timeline. No additional work shall begin until the Change Order is approved and signed by both parties.
-            </Text>
-          </View>
+          {/* Dynamic terms sections */}
+          {enabledTerms.map((section, idx) => (
+            <View key={section.id} style={s.termsItem} wrap={false}>
+              <View style={s.termsItemHeader}>
+                <View style={s.termsNumber}>
+                  <Text style={s.termsNumberText}>{idx + 1}</Text>
+                </View>
+                <Text style={s.termsTitle}>{section.title}</Text>
+              </View>
+              <Text style={s.termsContent}>{section.content}</Text>
+            </View>
+          ))}
 
-          <View style={s.termsSection}>
-            <Text style={s.termsTitle}>4. Warranty</Text>
-            <Text style={s.termsText}>
-              Contractor warrants all workmanship for a period of one (1) year from date of substantial completion. Manufacturer warranties on materials and products are passed through to the client. This warranty does not cover damage resulting from misuse, neglect, or normal wear and tear.
-            </Text>
-          </View>
-
-          <View style={s.termsSection}>
-            <Text style={s.termsTitle}>5. Exclusions</Text>
-            <Text style={s.termsText}>
-              Unless specifically included in the scope of work above, the following are excluded: permit fees, engineering or architectural drawings, hazardous material abatement (asbestos, lead paint), unforeseen structural repairs, landscaping restoration beyond immediate work area, and furniture/appliance relocation.
-            </Text>
-          </View>
-
-          <View style={s.termsSection}>
-            <Text style={s.termsTitle}>6. Insurance &amp; Liability</Text>
-            <Text style={s.termsText}>
-              Contractor maintains general liability insurance and workers compensation coverage. Certificates of insurance are available upon request. Client is responsible for maintaining homeowner insurance during the project period. Contractor is not liable for pre-existing conditions discovered during construction.
-            </Text>
-          </View>
-
-          <Text style={s.footer}>Generated by EstimAI Pro — estimaipro.com</Text>
+          <PDFPageFooter companyName={companyName} />
         </Page>
       )}
 
-      {/* ═══ PAGE 4: SIGNATURE (PRO+ only) ═══ */}
+      {/* ═══ PAGE 4: SIGNATURE (STANDARD+ only) ═══ */}
       {includeTerms && (
         <Page size="A4" style={s.page}>
-          <View style={s.pageHeader}>
-            {logoPath && <Image src={logoPath} style={s.pageHeaderLogo} />}
-            <Text style={s.pageHeaderTitle}>{title} — Acceptance</Text>
-          </View>
+          <PDFPageHeader
+            logoPath={logoPath}
+            companyName={companyName}
+            pageLabel={isContract ? "Agreement" : "Acceptance"}
+            color={primaryColor}
+          />
 
-          <Text style={s.sectionTitle}>Acceptance &amp; Authorization</Text>
+          <Text style={s.sectionTitle}>{acceptanceTitle}</Text>
 
-          <Text style={{ ...s.descriptionText, marginBottom: 8 }}>
-            By signing below, both parties agree to the scope of work, pricing, and terms outlined in this estimate. This document serves as a binding agreement upon execution.
+          {/* Contract notice */}
+          {isContract && (
+            <View style={s.contractNotice}>
+              <Text style={s.contractNoticeText}>
+                This is a binding agreement upon execution by both parties
+              </Text>
+            </View>
+          )}
+
+          <Text style={s.descriptionText}>
+            {isContract
+              ? "By signing below, both parties agree to the scope of work, pricing, and terms outlined in this agreement. This document constitutes a binding contract upon execution."
+              : "By signing below, both parties agree to the scope of work, pricing, and terms outlined in this estimate."}
           </Text>
 
-          <View style={s.coverTotalBlock}>
-            <Text style={s.coverTotalLabel}>Agreed Total</Text>
-            <Text style={{ ...s.coverTotalAmount, fontSize: 28 }}>{fmt(clientTotal)}</Text>
+          {/* Estimate reference */}
+          <View style={{ flexDirection: "row", gap: spacing[8], marginBottom: spacing[4] }}>
+            <View>
+              <Text style={{ fontSize: fontSize.sm, color: colors.gray400, marginBottom: 2 }}>
+                Reference
+              </Text>
+              <Text style={{ fontSize: fontSize.md, fontWeight: fontWeight.medium, color: colors.gray700 }}>
+                {title}
+              </Text>
+            </View>
+            <View>
+              <Text style={{ fontSize: fontSize.sm, color: colors.gray400, marginBottom: 2 }}>
+                Date
+              </Text>
+              <Text style={{ fontSize: fontSize.md, fontWeight: fontWeight.medium, color: colors.gray700 }}>
+                {createdAt}
+              </Text>
+            </View>
           </View>
 
+          {/* Agreed total */}
+          <View style={s.coverTotalCard}>
+            <Text style={s.coverTotalLabel}>Agreed Total</Text>
+            <Text style={{ ...s.coverTotalAmount, fontSize: fontSize["7xl"] }}>
+              {formatCurrency(clientTotal)}
+            </Text>
+          </View>
+
+          {/* Signature blocks */}
           <View style={s.sigRow}>
             <View style={s.sigColumn}>
-              <Text style={{ ...s.termsTitle, marginBottom: 40 }}>Client</Text>
+              <Text style={s.sigTitle}>Client</Text>
               <View style={s.sigLine} />
               <Text style={s.sigLabel}>Signature</Text>
-              <View style={{ ...s.sigLine, marginTop: 24 }} />
+              <View style={{ ...s.sigLine, marginTop: spacing[6] }} />
               <Text style={s.sigLabel}>Printed Name</Text>
-              <View style={{ ...s.sigLine, marginTop: 24 }} />
+              <View style={{ ...s.sigLine, marginTop: spacing[6] }} />
               <Text style={s.sigLabel}>Date</Text>
             </View>
 
             <View style={s.sigColumn}>
-              <Text style={{ ...s.termsTitle, marginBottom: 40 }}>Contractor</Text>
+              <Text style={s.sigTitle}>Contractor</Text>
               <View style={s.sigLine} />
               <Text style={s.sigLabel}>Signature</Text>
-              <View style={{ ...s.sigLine, marginTop: 24 }} />
+              <View style={{ ...s.sigLine, marginTop: spacing[6] }} />
               <Text style={s.sigLabel}>
                 {companyName || "Company Representative"}
               </Text>
-              <View style={{ ...s.sigLine, marginTop: 24 }} />
+              <View style={{ ...s.sigLine, marginTop: spacing[6] }} />
               <Text style={s.sigLabel}>Date</Text>
             </View>
           </View>
 
-          <Text style={s.footer}>Generated by EstimAI Pro — estimaipro.com</Text>
+          <PDFPageFooter companyName={companyName} />
         </Page>
       )}
     </Document>

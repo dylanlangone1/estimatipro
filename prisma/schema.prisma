@@ -48,6 +48,9 @@ model User {
   // Custom quality/finish levels (user-defined via AI prompt)
   customFinishLevels Json?
 
+  // Default terms & conditions (structured sections for PDFs)
+  defaultTerms Json?
+
   // Relations
   accounts         Account[]
   sessions         Session[]
@@ -129,6 +132,9 @@ model Estimate {
   outcome      EstimateOutcome?
   outcomeNotes String?          @db.Text
   actualCost   Float?
+
+  // Contract mode (PRO+)
+  isContract Boolean @default(false)
 
   // AI metadata
   aiGenerated     Boolean @default(true)

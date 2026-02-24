@@ -3,6 +3,13 @@ export interface CategoryNarrative {
   narrative: string
 }
 
+export interface TermsSection {
+  id: string
+  title: string
+  content: string
+  enabled: boolean
+}
+
 export interface ProposalData {
   aboutUs: string
   scopeOfWork: { category: string; narrative: string }[]

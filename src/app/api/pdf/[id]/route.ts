@@ -6,9 +6,13 @@ import { EstimatePDF } from "@/components/pdf/estimate-pdf"
 import { BrandedEstimatePDF } from "@/components/pdf/branded-estimate-pdf"
 import { ProposalPDF } from "@/components/pdf/proposal-pdf"
 import { ClientEstimatePDF } from "@/components/pdf/client-estimate-pdf"
-import { requireFeature } from "@/lib/tiers"
+import { requireFeature, tierAtLeast } from "@/lib/tiers"
+import { DEFAULT_TERMS } from "@/app/api/settings/terms/route"
 import React from "react"
-import type { TemplateConfig, ProposalData, CategoryNarrative } from "@/types/proposal"
+import type { TemplateConfig, ProposalData, CategoryNarrative, TermsSection } from "@/types/proposal"
+
+// Register Inter font for all PDF rendering
+import "@/lib/pdf-fonts"
 
 /**
  * Fetches a logo image and converts it to a base64 data URI.
@@ -28,6 +32,33 @@ async function fetchLogoAsBase64(url: string): Promise<string | null> {
     console.error("Failed to fetch logo for PDF:", error)
     return null
   }
+}
+
+/**
+ * Resolve terms for a given estimate/user.
+ * Priority: per-estimate override > user defaults > hardcoded fallback.
+ */
+async function resolveTerms(
+  userId: string,
+  estimateProposalData: unknown
+): Promise<TermsSection[]> {
+  // 1. Check per-estimate override
+  const pd = estimateProposalData as Record<string, unknown> | null
+  if (pd?.termsStructured && Array.isArray(pd.termsStructured)) {
+    return pd.termsStructured as TermsSection[]
+  }
+
+  // 2. Check user defaults
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { defaultTerms: true },
+  })
+  if (user?.defaultTerms) {
+    return user.defaultTerms as unknown as TermsSection[]
+  }
+
+  // 3. Hardcoded fallback
+  return DEFAULT_TERMS
 }
 
 export async function GET(
@@ -105,7 +136,8 @@ export async function GET(
     let pdfElement: any
 
     if (pdfType === "client") {
-      // Client-facing PDF — available to ALL tiers, enhanced for PRO+
+      // Client-facing PDF — available to ALL tiers, enhanced features for STANDARD+
+      const includeTerms = tierAtLeast(user.tier, "STANDARD")
       const isPro = user.tier === "PRO" || user.tier === "MAX"
 
       // Build category summaries with markup baked in
@@ -146,6 +178,11 @@ export async function GET(
         }
       }
 
+      // Resolve terms (structured sections)
+      const termsStructured = includeTerms
+        ? await resolveTerms(session.user.id, estimate.proposalData)
+        : undefined
+
       pdfElement = React.createElement(ClientEstimatePDF, {
         title: estimate.title,
         description: estimate.description,
@@ -163,7 +200,9 @@ export async function GET(
         logoPath: isPro ? logoPath : undefined,
         primaryColor,
         accentColor,
-        includeTerms: isPro,
+        includeTerms,
+        termsStructured,
+        isContract: estimate.isContract,
       })
     } else if (pdfType === "branded") {
       // PRO+ tier required
@@ -232,28 +271,26 @@ export async function GET(
         ? (template.templateConfig as unknown as TemplateConfig)
         : {
             header: { logoPosition: "left", showTagline: true, borderStyle: "accent", bgColor: "#E94560" },
-            body: { fontFamily: "Helvetica", alternateRowBg: true, categoryStyle: "banner" },
+            body: { fontFamily: "Inter", alternateRowBg: true, categoryStyle: "banner" },
             totals: { style: "boxed", highlightColor: "#E94560" },
             footer: { showGeneratedBy: true, customText: "" },
             colors: { primary: "#E94560", secondary: "#1A1A2E", accent: "#16213E", text: "#1F2937", background: "#FFFFFF" },
           }
 
       // Get or generate proposal data
-      // proposalData may exist but only contain categoryNarratives (from client estimate tab)
-      // — we need full proposal fields (scopeOfWork, aboutUs, etc.) for ProposalPDF
       let proposalData = estimate.proposalData as unknown as ProposalData | null
       const hasFullProposal = proposalData && "scopeOfWork" in proposalData && "aboutUs" in proposalData
 
       if (!hasFullProposal) {
         const { anthropic, AI_MODEL } = await import("@/lib/anthropic")
 
-        const categories: Record<string, Array<{ description: string; totalCost: number }>> = {}
+        const aiCategories: Record<string, Array<{ description: string; totalCost: number }>> = {}
         for (const item of estimate.lineItems) {
-          if (!categories[item.category]) categories[item.category] = []
-          categories[item.category].push({ description: item.description, totalCost: item.totalCost })
+          if (!aiCategories[item.category]) aiCategories[item.category] = []
+          aiCategories[item.category].push({ description: item.description, totalCost: item.totalCost })
         }
 
-        const categorySummary = Object.entries(categories)
+        const categorySummary = Object.entries(aiCategories)
           .map(([cat, items]) => `${cat}: ${items.map((i) => `${i.description} ($${i.totalCost.toFixed(2)})`).join(", ")}`)
           .join("\n")
 
@@ -287,7 +324,6 @@ Return ONLY a JSON object:
         const jsonMatch = text.match(/\{[\s\S]*\}/)
         if (!jsonMatch) throw new Error("Could not parse proposal")
 
-        // Merge with existing data to preserve categoryNarratives if present
         const existingData = (estimate.proposalData as unknown as Record<string, unknown>) || {}
         proposalData = { ...existingData, ...JSON.parse(jsonMatch[0]), generatedAt: new Date().toISOString() } as unknown as ProposalData
 
@@ -296,6 +332,9 @@ Return ONLY a JSON object:
           data: { proposalData: JSON.parse(JSON.stringify(proposalData)) },
         })
       }
+
+      // Resolve structured terms for proposal
+      const termsStructured = await resolveTerms(session.user.id, estimate.proposalData)
 
       pdfElement = React.createElement(ProposalPDF, {
         title: estimate.title,
@@ -317,6 +356,8 @@ Return ONLY a JSON object:
         logoPath,
         templateConfig,
         proposalData: proposalData!,
+        termsStructured,
+        isContract: estimate.isContract,
       })
     } else {
       // Standard PDF — available to all tiers
@@ -333,14 +374,11 @@ Return ONLY a JSON object:
         totalAmount: estimate.totalAmount,
         createdAt,
         assumptions,
-        ...(isPro
-          ? {
-              companyName: user.companyName || undefined,
-              companyPhone: user.phone || undefined,
-              companyEmail: user.email,
-              companyAddress,
-            }
-          : {}),
+        companyName: user.companyName || undefined,
+        companyPhone: user.phone || undefined,
+        companyEmail: user.email,
+        companyAddress,
+        logoPath: isPro ? logoPath : undefined,
       })
     }
 

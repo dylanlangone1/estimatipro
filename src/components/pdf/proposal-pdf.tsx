@@ -6,21 +6,31 @@ import {
   Image,
   StyleSheet,
 } from "@react-pdf/renderer"
-import type { TemplateConfig, ProposalData } from "@/types/proposal"
-
-interface LineItem {
-  category: string
-  description: string
-  quantity: number
-  unit: string
-  unitCost: number
-  totalCost: number
-}
+import {
+  FONT_FAMILY,
+  fontSize,
+  fontWeight,
+  lineHeight,
+  spacing,
+  colors,
+  borderRadius,
+  PAGE_MARGIN,
+  PAGE_MARGIN_BOTTOM,
+  formatCurrency,
+  groupByCategory,
+  type PDFLineItem,
+} from "./pdf-design-system"
+import {
+  PDFPageHeader,
+  PDFPageFooter,
+  PDFAccentBar,
+} from "./pdf-shared-components"
+import type { TemplateConfig, ProposalData, TermsSection } from "@/types/proposal"
 
 interface ProposalPDFProps {
   title: string
   description: string
-  lineItems: LineItem[]
+  lineItems: PDFLineItem[]
   subtotal: number
   markupPercent: number
   markupAmount: number
@@ -37,19 +47,8 @@ interface ProposalPDFProps {
   logoPath?: string
   templateConfig: TemplateConfig
   proposalData: ProposalData
-}
-
-function formatCurrency(amount: number) {
-  return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-function groupByCategory(items: LineItem[]): Record<string, LineItem[]> {
-  const groups: Record<string, LineItem[]> = {}
-  for (const item of items) {
-    if (!groups[item.category]) groups[item.category] = []
-    groups[item.category].push(item)
-  }
-  return groups
+  termsStructured?: TermsSection[]
+  isContract?: boolean
 }
 
 export function ProposalPDF({
@@ -72,148 +71,263 @@ export function ProposalPDF({
   logoPath,
   templateConfig,
   proposalData,
+  termsStructured,
+  isContract = false,
 }: ProposalPDFProps) {
-  const { colors, header, body, totals, footer } = templateConfig
+  const { colors: tc, header, body, totals, footer } = templateConfig
   const grouped = groupByCategory(lineItems)
 
-  const styles = StyleSheet.create({
+  // Use Inter as default instead of Helvetica
+  const fontFamily = body.fontFamily === "Helvetica" ? FONT_FAMILY : (body.fontFamily || FONT_FAMILY)
+
+  const documentLabel = isContract ? "Construction Agreement" : "Project Proposal"
+
+  const s = StyleSheet.create({
+    // ─── Common ───
     page: {
-      padding: 40,
-      fontSize: 10,
-      fontFamily: body.fontFamily || "Helvetica",
-      color: colors.text,
-      backgroundColor: colors.background,
+      padding: PAGE_MARGIN,
+      paddingBottom: PAGE_MARGIN_BOTTOM,
+      fontSize: fontSize.md,
+      fontFamily,
+      color: tc.text,
+      backgroundColor: tc.background,
     },
-    // Cover page styles
+    pageTitle: {
+      fontSize: fontSize["4xl"],
+      fontWeight: fontWeight.bold,
+      color: tc.primary,
+      marginBottom: spacing[5],
+      paddingBottom: spacing[2],
+      borderBottomWidth: 2,
+      borderBottomColor: tc.primary,
+    },
+    sectionTitle: {
+      fontSize: fontSize["2xl"],
+      fontWeight: fontWeight.semibold,
+      color: tc.primary,
+      marginBottom: spacing[2],
+      marginTop: spacing[4],
+    },
+    bodyText: {
+      fontSize: fontSize.md,
+      color: tc.text,
+      lineHeight: lineHeight.relaxed,
+      marginBottom: spacing[2],
+    },
+
+    // ─── Cover ───
     coverPage: {
       padding: 0,
-      backgroundColor: colors.background,
+      backgroundColor: tc.background,
+      fontFamily,
     },
     coverBanner: {
-      backgroundColor: colors.primary,
-      padding: 60,
-      paddingTop: 80,
-      alignItems: "center",
-      marginBottom: 0,
+      backgroundColor: tc.primary,
+      paddingVertical: 72,
+      paddingHorizontal: 60,
     },
     coverLogo: {
-      width: 80,
-      height: 80,
+      width: 100,
+      height: 100,
       objectFit: "contain" as const,
-      marginBottom: 20,
+      marginBottom: spacing[5],
+      borderWidth: 2,
+      borderColor: "rgba(255,255,255,0.2)",
+      borderRadius: borderRadius.md,
     },
     coverCompanyName: {
-      fontSize: 32,
-      fontWeight: "bold",
-      color: "#FFFFFF",
-      marginBottom: 6,
-      textAlign: "center",
+      fontSize: 34,
+      fontWeight: fontWeight.bold,
+      color: colors.white,
+      marginBottom: 4,
     },
     coverTagline: {
-      fontSize: 14,
-      color: "rgba(255,255,255,0.8)",
-      marginBottom: 30,
-      textAlign: "center",
+      fontSize: fontSize["2xl"],
+      fontWeight: fontWeight.normal,
+      color: "rgba(255,255,255,0.75)",
+      marginBottom: spacing[8],
     },
     coverDivider: {
       width: 60,
-      height: 2,
-      backgroundColor: colors.accent,
-      marginBottom: 30,
+      height: 3,
+      backgroundColor: tc.accent,
+      borderRadius: 1.5,
+      marginBottom: spacing[8],
     },
     coverProjectTitle: {
-      fontSize: 20,
-      fontWeight: "bold",
-      color: "#FFFFFF",
-      marginBottom: 8,
-      textAlign: "center",
+      fontSize: fontSize["5xl"],
+      fontWeight: fontWeight.bold,
+      color: colors.white,
+      marginBottom: spacing[2],
     },
     coverSubtitle: {
-      fontSize: 12,
+      fontSize: fontSize.xl,
       color: "rgba(255,255,255,0.7)",
-      textAlign: "center",
     },
     coverDetails: {
       padding: 60,
-      alignItems: "center",
+    },
+    coverDetailRow: {
+      flexDirection: "row",
+      gap: spacing[8],
+      marginBottom: spacing[6],
+    },
+    coverDetailBlock: {
+      flex: 1,
     },
     coverDetailLabel: {
-      fontSize: 10,
-      color: "#9CA3AF",
-      marginBottom: 4,
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.medium,
+      color: colors.gray400,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      marginBottom: spacing[1],
     },
     coverDetailValue: {
-      fontSize: 12,
-      color: colors.text,
-      marginBottom: 16,
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.medium,
+      color: tc.text,
     },
-    // Content page styles
-    pageTitle: {
-      fontSize: 18,
-      fontWeight: "bold",
-      color: colors.primary,
-      marginBottom: 16,
-      paddingBottom: 8,
-      borderBottomWidth: 2,
-      borderBottomColor: colors.primary,
+    coverTotalCard: {
+      backgroundColor: `${tc.primary}08`,
+      borderWidth: 1.5,
+      borderColor: `${tc.primary}25`,
+      borderRadius: borderRadius.lg,
+      paddingVertical: spacing[6],
+      paddingHorizontal: spacing[8],
+      alignItems: "center",
+      marginTop: spacing[4],
     },
-    sectionTitle: {
-      fontSize: 13,
-      fontWeight: "bold",
-      color: colors.primary,
-      marginBottom: 8,
-      marginTop: 12,
+    coverTotalLabel: {
+      fontSize: fontSize.lg,
+      fontWeight: fontWeight.medium,
+      color: colors.gray400,
+      textTransform: "uppercase",
+      letterSpacing: 2,
+      marginBottom: spacing[2],
     },
-    bodyText: {
-      fontSize: 10,
-      color: colors.text,
-      lineHeight: 1.6,
-      marginBottom: 8,
+    coverTotalAmount: {
+      fontSize: fontSize["7xl"],
+      fontWeight: fontWeight.bold,
+      color: tc.primary,
     },
-    // Table styles
+    coverContactBar: {
+      position: "absolute",
+      bottom: 48,
+      left: 60,
+      right: 60,
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: spacing[4],
+      borderTopWidth: 1,
+      borderTopColor: colors.gray200,
+      paddingTop: spacing[4],
+    },
+    coverContactText: {
+      fontSize: fontSize.base,
+      color: colors.gray400,
+    },
+
+    // ─── About Us ───
+    aboutContainer: {
+      flexDirection: "row",
+      gap: spacing[6],
+    },
+    aboutCard: {
+      width: "30%",
+      backgroundColor: `${tc.primary}06`,
+      borderRadius: borderRadius.md,
+      padding: spacing[4],
+      borderLeftWidth: 3,
+      borderLeftColor: tc.primary,
+    },
+    aboutCardLabel: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.medium,
+      color: colors.gray400,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      marginBottom: spacing[1],
+    },
+    aboutCardValue: {
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.semibold,
+      color: tc.text,
+      marginBottom: spacing[3],
+    },
+    aboutNarrative: {
+      flex: 1,
+    },
+
+    // ─── Scope ───
+    scopeBlock: {
+      marginBottom: spacing[5],
+      borderLeftWidth: 3,
+      borderLeftColor: tc.primary,
+      paddingLeft: spacing[4],
+    },
+    scopeCategory: {
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.semibold,
+      color: tc.secondary || tc.text,
+      marginBottom: spacing[1],
+    },
+
+    // ─── Table ───
     table: { width: "100%" },
     tableHeader: {
       flexDirection: "row",
-      backgroundColor: `${colors.primary}15`,
-      paddingVertical: 6,
-      paddingHorizontal: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: `${colors.primary}30`,
+      backgroundColor: `${tc.primary}12`,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderBottomWidth: 1.5,
+      borderBottomColor: `${tc.primary}30`,
+    },
+    tableHeaderText: {
+      fontWeight: fontWeight.medium,
+      fontSize: fontSize.sm,
+      color: tc.primary,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
     },
     tableRow: {
       flexDirection: "row",
-      paddingVertical: 5,
-      paddingHorizontal: 8,
+      paddingVertical: 7,
+      paddingHorizontal: 10,
       borderBottomWidth: 0.5,
-      borderBottomColor: "#E5E7EB",
+      borderBottomColor: colors.gray200,
     },
     tableRowAlt: {
-      backgroundColor: body.alternateRowBg ? `${colors.secondary}08` : "transparent",
+      backgroundColor: body.alternateRowBg ? `${tc.secondary}06` : "transparent",
     },
     categoryRow: {
       flexDirection: "row",
-      paddingVertical: 6,
-      paddingHorizontal: 8,
-      backgroundColor: body.categoryStyle === "banner" ? `${colors.primary}10` : "transparent",
+      alignItems: "center",
+      paddingVertical: 7,
+      paddingHorizontal: 10,
+      backgroundColor: body.categoryStyle === "banner" ? `${tc.primary}08` : "transparent",
       borderBottomWidth: body.categoryStyle === "underline" ? 2 : 0,
-      borderBottomColor: colors.primary,
+      borderBottomColor: tc.primary,
+      borderLeftWidth: 3,
+      borderLeftColor: tc.primary,
     },
     colDesc: { flex: 3 },
     colQty: { width: 50, textAlign: "right" },
     colUnit: { width: 40, textAlign: "center" },
     colUnitCost: { width: 70, textAlign: "right" },
     colTotal: { width: 80, textAlign: "right" },
-    bold: { fontWeight: "bold" },
-    headerTextSmall: { fontWeight: "bold", fontSize: 9, color: colors.primary },
-    // Totals
-    totalSection: { marginTop: 16, alignItems: "flex-end" },
+    bold: { fontWeight: fontWeight.semibold },
+    muted: { color: colors.gray500 },
+
+    // ─── Totals ───
+    totalSection: { marginTop: spacing[5], alignItems: "flex-end" },
     totalBox: {
-      width: 220,
-      padding: totals.style === "boxed" ? 12 : 0,
-      backgroundColor: totals.style === "boxed" ? `${colors.primary}08` : "transparent",
+      width: 240,
+      padding: totals.style === "boxed" ? spacing[4] : 0,
+      backgroundColor: totals.style === "boxed" ? `${tc.primary}06` : "transparent",
       borderWidth: totals.style === "boxed" ? 1 : 0,
-      borderColor: `${colors.primary}20`,
-      borderRadius: totals.style === "boxed" ? 6 : 0,
+      borderColor: `${tc.primary}20`,
+      borderRadius: totals.style === "boxed" ? borderRadius.md : 0,
     },
     totalRow: {
       flexDirection: "row",
@@ -223,135 +337,239 @@ export function ProposalPDF({
     grandTotal: {
       flexDirection: "row",
       justifyContent: "space-between",
-      paddingVertical: 6,
+      paddingVertical: spacing[2],
       borderTopWidth: 2,
       borderTopColor: totals.highlightColor,
-      marginTop: 4,
+      marginTop: spacing[1],
     },
     grandTotalText: {
-      fontSize: 14,
-      fontWeight: "bold",
+      fontSize: fontSize["2xl"],
+      fontWeight: fontWeight.bold,
       color: totals.highlightColor,
     },
-    // Timeline
-    timelineRow: {
+
+    // ─── Timeline ───
+    timelineItem: {
       flexDirection: "row",
-      marginBottom: 10,
-      paddingLeft: 8,
+      marginBottom: spacing[5],
+    },
+    timelineBar: {
+      width: 2,
+      backgroundColor: tc.primary,
+      marginRight: spacing[4],
     },
     timelineDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: colors.primary,
-      marginTop: 3,
-      marginRight: 12,
-    },
-    // Terms
-    termsParagraph: {
-      fontSize: 9,
-      color: "#6B7280",
-      lineHeight: 1.6,
-      marginBottom: 10,
-    },
-    // Signature
-    signatureLine: {
-      borderBottomWidth: 1,
-      borderBottomColor: "#D1D5DB",
-      width: 200,
-      marginBottom: 4,
-      marginTop: 30,
-    },
-    signatureLabel: {
-      fontSize: 9,
-      color: "#9CA3AF",
-    },
-    // Footer
-    footerText: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: tc.primary,
       position: "absolute",
-      bottom: 30,
-      left: 40,
-      right: 40,
+      left: -5,
+      top: 2,
+    },
+    timelineContent: {
+      flex: 1,
+      paddingLeft: spacing[2],
+    },
+    timelinePhase: {
+      fontSize: fontSize.lg,
+      fontWeight: fontWeight.semibold,
+      color: tc.text,
+      marginBottom: 2,
+    },
+    timelineDuration: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.medium,
+      color: tc.primary,
+      marginBottom: spacing[1],
+    },
+
+    // ─── Terms ───
+    termsItem: {
+      marginBottom: spacing[5],
+    },
+    termsItemHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacing[2],
+    },
+    termsNumber: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: tc.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing[3],
+    },
+    termsNumberText: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.bold,
+      color: colors.white,
+    },
+    termsTitle: {
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.semibold,
+      color: tc.secondary || tc.text,
+    },
+    termsContent: {
+      fontSize: fontSize.base,
+      lineHeight: lineHeight.relaxed,
+      color: colors.gray500,
+      paddingLeft: 34,
+    },
+
+    // ─── Signature ───
+    sigContainer: {
+      marginTop: spacing[10],
+      flexDirection: "row",
+      justifyContent: "space-between",
+      gap: spacing[10],
+    },
+    sigColumn: { flex: 1 },
+    sigLine: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.gray300,
+      width: 200,
+      marginBottom: spacing[1],
+      marginTop: spacing[8],
+    },
+    sigLabel: {
+      fontSize: fontSize.base,
+      color: colors.gray400,
+    },
+    contractNotice: {
+      backgroundColor: `${tc.secondary}08`,
+      borderWidth: 1.5,
+      borderColor: `${tc.secondary}30`,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[4],
+      marginBottom: spacing[6],
+    },
+    contractNoticeText: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+      color: tc.secondary || tc.text,
       textAlign: "center",
-      fontSize: 8,
-      color: "#9CA3AF",
+      textTransform: "uppercase",
+      letterSpacing: 1,
     },
   })
 
+  const enabledTerms = (termsStructured || []).filter((t) => t.enabled)
+
   return (
     <Document>
-      {/* Page 1: Cover */}
-      <Page size="A4" style={styles.coverPage}>
-        <View style={styles.coverBanner}>
-          {logoPath && (
-            <Image src={logoPath} style={styles.coverLogo} />
-          )}
-          <Text style={styles.coverCompanyName}>{companyName || "Company Name"}</Text>
-          {companyTagline && <Text style={styles.coverTagline}>{companyTagline}</Text>}
-          <View style={styles.coverDivider} />
-          <Text style={styles.coverProjectTitle}>Project Proposal</Text>
-          <Text style={styles.coverSubtitle}>{title}</Text>
+      {/* ═══ PAGE 1: COVER ═══ */}
+      <Page size="A4" style={s.coverPage}>
+        <View style={s.coverBanner}>
+          {logoPath && <Image src={logoPath} style={s.coverLogo} />}
+          <Text style={s.coverCompanyName}>{companyName || "Company Name"}</Text>
+          {companyTagline && <Text style={s.coverTagline}>{companyTagline}</Text>}
+          <View style={s.coverDivider} />
+          <Text style={s.coverProjectTitle}>{documentLabel}</Text>
+          <Text style={s.coverSubtitle}>{title}</Text>
         </View>
-        <View style={styles.coverDetails}>
-          {clientName && (
-            <>
-              <Text style={styles.coverDetailLabel}>Prepared For</Text>
-              <Text style={styles.coverDetailValue}>{clientName}</Text>
-            </>
-          )}
-          <Text style={styles.coverDetailLabel}>Date</Text>
-          <Text style={styles.coverDetailValue}>{createdAt}</Text>
-          <Text style={styles.coverDetailLabel}>Total Investment</Text>
-          <Text style={{ fontSize: 24, fontWeight: "bold", color: colors.primary }}>
-            {formatCurrency(totalAmount)}
-          </Text>
+
+        <View style={s.coverDetails}>
+          <View style={s.coverDetailRow}>
+            {clientName && (
+              <View style={s.coverDetailBlock}>
+                <Text style={s.coverDetailLabel}>Prepared For</Text>
+                <Text style={s.coverDetailValue}>{clientName}</Text>
+              </View>
+            )}
+            <View style={s.coverDetailBlock}>
+              <Text style={s.coverDetailLabel}>Date</Text>
+              <Text style={s.coverDetailValue}>{createdAt}</Text>
+            </View>
+          </View>
+
+          <View style={s.coverTotalCard}>
+            <Text style={s.coverTotalLabel}>Total Investment</Text>
+            <Text style={s.coverTotalAmount}>{formatCurrency(totalAmount)}</Text>
+          </View>
         </View>
-        <Text style={styles.footerText}>
-          {companyPhone && `${companyPhone} | `}
-          {companyEmail && `${companyEmail} | `}
-          {companyAddress || ""}
-        </Text>
+
+        <View style={s.coverContactBar}>
+          {companyPhone && <Text style={s.coverContactText}>{companyPhone}</Text>}
+          {companyPhone && companyEmail && <Text style={s.coverContactText}>|</Text>}
+          {companyEmail && <Text style={s.coverContactText}>{companyEmail}</Text>}
+          {companyEmail && companyAddress && <Text style={s.coverContactText}>|</Text>}
+          {companyAddress && <Text style={s.coverContactText}>{companyAddress}</Text>}
+        </View>
       </Page>
 
-      {/* Page 2: About Us */}
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.pageTitle}>About Us</Text>
-        <Text style={styles.bodyText}>{proposalData.aboutUs}</Text>
-        <Text style={styles.footerText}>
-          {footer.showGeneratedBy ? "Generated by EstimAI Pro" : ""}
-        </Text>
+      {/* ═══ PAGE 2: ABOUT US ═══ */}
+      <Page size="A4" style={s.page}>
+        <PDFPageHeader logoPath={logoPath} companyName={companyName} pageLabel="About Us" color={tc.primary} />
+        <Text style={s.pageTitle}>About Us</Text>
+
+        <View style={s.aboutContainer}>
+          {/* Company card */}
+          <View style={s.aboutCard}>
+            {logoPath && (
+              <Image src={logoPath} style={{ width: 48, height: 48, objectFit: "contain" as const, marginBottom: spacing[3] }} />
+            )}
+            <Text style={s.aboutCardLabel}>Company</Text>
+            <Text style={s.aboutCardValue}>{companyName || "Our Company"}</Text>
+            {companyPhone && (
+              <>
+                <Text style={s.aboutCardLabel}>Phone</Text>
+                <Text style={{ ...s.aboutCardValue, fontSize: fontSize.base }}>{companyPhone}</Text>
+              </>
+            )}
+            {companyEmail && (
+              <>
+                <Text style={s.aboutCardLabel}>Email</Text>
+                <Text style={{ ...s.aboutCardValue, fontSize: fontSize.base }}>{companyEmail}</Text>
+              </>
+            )}
+          </View>
+
+          {/* Narrative */}
+          <View style={s.aboutNarrative}>
+            <Text style={s.bodyText}>{proposalData.aboutUs}</Text>
+          </View>
+        </View>
+
+        <PDFPageFooter companyName={companyName} showBranding={footer.showGeneratedBy} />
       </Page>
 
-      {/* Page 3: Scope of Work */}
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.pageTitle}>Scope of Work</Text>
-        <Text style={styles.bodyText}>{description}</Text>
+      {/* ═══ PAGE 3: SCOPE OF WORK ═══ */}
+      <Page size="A4" style={s.page}>
+        <PDFPageHeader logoPath={logoPath} companyName={companyName} pageLabel="Scope of Work" color={tc.primary} />
+        <Text style={s.pageTitle}>Scope of Work</Text>
+        <Text style={s.bodyText}>{description}</Text>
+
         {proposalData.scopeOfWork.map((scope, i) => (
-          <View key={i} style={{ marginBottom: 12 }}>
-            <Text style={styles.sectionTitle}>{scope.category}</Text>
-            <Text style={styles.bodyText}>{scope.narrative}</Text>
+          <View key={i} style={s.scopeBlock} wrap={false}>
+            <Text style={s.scopeCategory}>{scope.category}</Text>
+            <Text style={s.bodyText}>{scope.narrative}</Text>
           </View>
         ))}
-        <Text style={styles.footerText}>
-          {footer.showGeneratedBy ? "Generated by EstimAI Pro" : ""}
-        </Text>
+
+        <PDFPageFooter companyName={companyName} showBranding={footer.showGeneratedBy} />
       </Page>
 
-      {/* Page 4-5: Detailed Estimate */}
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.pageTitle}>Detailed Estimate</Text>
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={{ ...styles.colDesc, ...styles.headerTextSmall }}>Description</Text>
-            <Text style={{ ...styles.colQty, ...styles.headerTextSmall }}>Qty</Text>
-            <Text style={{ ...styles.colUnit, ...styles.headerTextSmall }}>Unit</Text>
-            <Text style={{ ...styles.colUnitCost, ...styles.headerTextSmall }}>Unit Cost</Text>
-            <Text style={{ ...styles.colTotal, ...styles.headerTextSmall }}>Total</Text>
+      {/* ═══ PAGE 4-5: DETAILED ESTIMATE ═══ */}
+      <Page size="A4" style={s.page}>
+        <PDFPageHeader logoPath={logoPath} companyName={companyName} pageLabel="Detailed Estimate" color={tc.primary} />
+        <Text style={s.pageTitle}>Detailed Estimate</Text>
+
+        <View style={s.table}>
+          <View style={s.tableHeader}>
+            <Text style={{ ...s.colDesc, ...s.tableHeaderText }}>Description</Text>
+            <Text style={{ ...s.colQty, ...s.tableHeaderText }}>Qty</Text>
+            <Text style={{ ...s.colUnit, ...s.tableHeaderText }}>Unit</Text>
+            <Text style={{ ...s.colUnitCost, ...s.tableHeaderText }}>Unit Cost</Text>
+            <Text style={{ ...s.colTotal, ...s.tableHeaderText }}>Total</Text>
           </View>
           {Object.entries(grouped).map(([category, items]) => (
             <View key={category}>
-              <View style={styles.categoryRow}>
-                <Text style={{ ...styles.bold, fontSize: 10, color: colors.primary }}>
+              <View style={s.categoryRow}>
+                <Text style={{ ...s.bold, fontSize: fontSize.md, color: tc.primary }}>
                   {category}
                 </Text>
               </View>
@@ -359,15 +577,15 @@ export function ProposalPDF({
                 <View
                   key={idx}
                   style={{
-                    ...styles.tableRow,
-                    ...(idx % 2 === 1 ? styles.tableRowAlt : {}),
+                    ...s.tableRow,
+                    ...(idx % 2 === 1 ? s.tableRowAlt : {}),
                   }}
                 >
-                  <Text style={styles.colDesc}>{item.description}</Text>
-                  <Text style={styles.colQty}>{item.quantity.toLocaleString()}</Text>
-                  <Text style={styles.colUnit}>{item.unit}</Text>
-                  <Text style={styles.colUnitCost}>{formatCurrency(item.unitCost)}</Text>
-                  <Text style={{ ...styles.colTotal, ...styles.bold }}>
+                  <Text style={s.colDesc}>{item.description}</Text>
+                  <Text style={s.colQty}>{item.quantity.toLocaleString()}</Text>
+                  <Text style={{ ...s.colUnit, ...s.muted }}>{item.unit}</Text>
+                  <Text style={s.colUnitCost}>{formatCurrency(item.unitCost)}</Text>
+                  <Text style={{ ...s.colTotal, ...s.bold }}>
                     {formatCurrency(item.totalCost)}
                   </Text>
                 </View>
@@ -375,137 +593,180 @@ export function ProposalPDF({
             </View>
           ))}
         </View>
-        <View style={styles.totalSection}>
-          <View style={styles.totalBox}>
-            <View style={styles.totalRow}>
-              <Text>Subtotal</Text>
-              <Text style={styles.bold}>{formatCurrency(subtotal)}</Text>
+
+        {/* Totals */}
+        <View style={s.totalSection}>
+          <View style={s.totalBox}>
+            <View style={s.totalRow}>
+              <Text style={s.muted}>Subtotal</Text>
+              <Text style={s.bold}>{formatCurrency(subtotal)}</Text>
             </View>
             {markupPercent > 0 && (
-              <View style={styles.totalRow}>
-                <Text>Markup ({markupPercent}%)</Text>
+              <View style={s.totalRow}>
+                <Text style={s.muted}>Markup ({markupPercent}%)</Text>
                 <Text>{formatCurrency(markupAmount)}</Text>
               </View>
             )}
             {taxAmount > 0 && (
-              <View style={styles.totalRow}>
-                <Text>Tax</Text>
+              <View style={s.totalRow}>
+                <Text style={s.muted}>Tax</Text>
                 <Text>{formatCurrency(taxAmount)}</Text>
               </View>
             )}
-            <View style={styles.grandTotal}>
-              <Text style={styles.grandTotalText}>Total</Text>
-              <Text style={styles.grandTotalText}>{formatCurrency(totalAmount)}</Text>
+            <View style={s.grandTotal}>
+              <Text style={s.grandTotalText}>Total</Text>
+              <Text style={s.grandTotalText}>{formatCurrency(totalAmount)}</Text>
             </View>
           </View>
         </View>
 
+        {/* Assumptions */}
         {assumptions && assumptions.length > 0 && (
-          <View style={{ marginTop: 16, padding: 10, backgroundColor: `${colors.secondary}05`, borderRadius: 4 }}>
-            <Text style={{ ...styles.bold, fontSize: 9, marginBottom: 4 }}>Assumptions:</Text>
+          <View style={{ marginTop: spacing[5], padding: spacing[3], backgroundColor: `${tc.secondary}05`, borderRadius: borderRadius.base, borderLeftWidth: 3, borderLeftColor: tc.accent }}>
+            <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: tc.secondary, marginBottom: spacing[1] }}>
+              Assumptions
+            </Text>
             {assumptions.map((a, i) => (
-              <Text key={i} style={{ fontSize: 9, color: "#6B7280", marginBottom: 2 }}>
+              <Text key={i} style={{ fontSize: fontSize.base, color: colors.gray500, marginBottom: 2 }}>
                 {"\u2022"} {a}
               </Text>
             ))}
           </View>
         )}
-        <Text style={styles.footerText}>
-          {footer.showGeneratedBy ? "Generated by EstimAI Pro" : ""}
-        </Text>
+
+        <PDFPageFooter companyName={companyName} showBranding={footer.showGeneratedBy} />
       </Page>
 
-      {/* Page 6: Timeline */}
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.pageTitle}>Project Timeline</Text>
+      {/* ═══ PAGE 6: TIMELINE ═══ */}
+      <Page size="A4" style={s.page}>
+        <PDFPageHeader logoPath={logoPath} companyName={companyName} pageLabel="Timeline" color={tc.primary} />
+        <Text style={s.pageTitle}>Project Timeline</Text>
+
         {proposalData.timeline.map((phase, i) => (
-          <View key={i} style={styles.timelineRow}>
-            <View style={styles.timelineDot} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ ...styles.bold, fontSize: 11, marginBottom: 2 }}>
-                {phase.phase}
-              </Text>
-              <Text style={{ fontSize: 9, color: colors.primary, marginBottom: 4 }}>
-                Duration: {phase.duration}
-              </Text>
-              <Text style={styles.bodyText}>{phase.description}</Text>
+          <View key={i} style={s.timelineItem} wrap={false}>
+            <View style={s.timelineBar}>
+              <View style={s.timelineDot} />
+            </View>
+            <View style={s.timelineContent}>
+              <Text style={s.timelinePhase}>{phase.phase}</Text>
+              <Text style={s.timelineDuration}>{phase.duration}</Text>
+              <Text style={s.bodyText}>{phase.description}</Text>
             </View>
           </View>
         ))}
-        <Text style={styles.footerText}>
-          {footer.showGeneratedBy ? "Generated by EstimAI Pro" : ""}
-        </Text>
+
+        <PDFPageFooter companyName={companyName} showBranding={footer.showGeneratedBy} />
       </Page>
 
-      {/* Page 7: Terms & Conditions */}
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.pageTitle}>Terms & Conditions</Text>
-        <Text style={styles.termsParagraph}>{proposalData.terms}</Text>
+      {/* ═══ PAGE 7: TERMS & CONDITIONS ═══ */}
+      <Page size="A4" style={s.page}>
+        <PDFPageHeader logoPath={logoPath} companyName={companyName} pageLabel="Terms & Conditions" color={tc.primary} />
+        <Text style={s.pageTitle}>Terms &amp; Conditions</Text>
 
-        {/* Exclusions — inline if present */}
+        {/* Contract preamble */}
+        {isContract && (
+          <Text style={{ ...s.bodyText, marginBottom: spacing[5] }}>
+            This Construction Agreement (&quot;Agreement&quot;) is entered into between the
+            Contractor identified herein and the Client. Both parties agree to the scope of
+            work, pricing, and the following terms and conditions.
+          </Text>
+        )}
+
+        {/* Structured terms (dynamic) */}
+        {enabledTerms.length > 0 ? (
+          enabledTerms.map((section, idx) => (
+            <View key={section.id} style={s.termsItem} wrap={false}>
+              <View style={s.termsItemHeader}>
+                <View style={s.termsNumber}>
+                  <Text style={s.termsNumberText}>{idx + 1}</Text>
+                </View>
+                <Text style={s.termsTitle}>{section.title}</Text>
+              </View>
+              <Text style={s.termsContent}>{section.content}</Text>
+            </View>
+          ))
+        ) : (
+          // Fallback to proposalData.terms if no structured terms
+          <Text style={{ ...s.bodyText, color: colors.gray500, lineHeight: lineHeight.relaxed }}>
+            {proposalData.terms}
+          </Text>
+        )}
+
+        {/* Exclusions */}
         {proposalData.exclusions && (
-          <View style={{ marginTop: 20 }}>
-            <Text style={styles.sectionTitle}>Exclusions</Text>
-            <Text style={styles.termsParagraph}>{proposalData.exclusions}</Text>
+          <View style={{ marginTop: spacing[5] }}>
+            <Text style={s.sectionTitle}>Exclusions</Text>
+            <Text style={{ ...s.bodyText, color: colors.gray500 }}>{proposalData.exclusions}</Text>
           </View>
         )}
 
-        {/* Warranty — inline if present */}
+        {/* Warranty */}
         {proposalData.warranty && (
-          <View style={{ marginTop: 20 }}>
-            <Text style={styles.sectionTitle}>Warranty</Text>
-            <Text style={styles.termsParagraph}>{proposalData.warranty}</Text>
+          <View style={{ marginTop: spacing[5] }}>
+            <Text style={s.sectionTitle}>Warranty</Text>
+            <Text style={{ ...s.bodyText, color: colors.gray500 }}>{proposalData.warranty}</Text>
           </View>
         )}
 
-        <Text style={styles.footerText}>
-          {footer.showGeneratedBy ? "Generated by EstimAI Pro" : ""}
-        </Text>
+        <PDFPageFooter companyName={companyName} showBranding={footer.showGeneratedBy} />
       </Page>
 
-      {/* Page 8: Closing / Signature */}
-      <Page size="A4" style={styles.page}>
-        <Text style={styles.pageTitle}>Acceptance</Text>
-        <Text style={styles.bodyText}>
-          By signing below, you acknowledge that you have reviewed this proposal and agree to the
-          terms, scope of work, and pricing outlined herein.
+      {/* ═══ PAGE 8: ACCEPTANCE / SIGNATURE ═══ */}
+      <Page size="A4" style={s.page}>
+        <PDFPageHeader logoPath={logoPath} companyName={companyName} pageLabel={isContract ? "Agreement" : "Acceptance"} color={tc.primary} />
+        <Text style={s.pageTitle}>
+          {isContract ? "Acceptance & Authorization to Proceed" : "Acceptance"}
         </Text>
 
-        <View style={{ marginTop: 40, flexDirection: "row", justifyContent: "space-between" }}>
-          <View>
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>Client Signature</Text>
-            <View style={{ ...styles.signatureLine, marginTop: 20 }} />
-            <Text style={styles.signatureLabel}>Printed Name</Text>
-            <View style={{ ...styles.signatureLine, marginTop: 20 }} />
-            <Text style={styles.signatureLabel}>Date</Text>
+        {/* Contract notice */}
+        {isContract && (
+          <View style={s.contractNotice}>
+            <Text style={s.contractNoticeText}>
+              This is a binding agreement upon execution by both parties
+            </Text>
           </View>
-          <View>
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>Contractor Signature</Text>
-            <View style={{ ...styles.signatureLine, marginTop: 20 }} />
-            <Text style={styles.signatureLabel}>{companyName || "Company Representative"}</Text>
-            <View style={{ ...styles.signatureLine, marginTop: 20 }} />
-            <Text style={styles.signatureLabel}>Date</Text>
+        )}
+
+        <Text style={s.bodyText}>
+          {isContract
+            ? "By signing below, you acknowledge that you have reviewed this agreement and agree to the terms, scope of work, and pricing outlined herein. This document constitutes a binding contract upon execution."
+            : "By signing below, you acknowledge that you have reviewed this proposal and agree to the terms, scope of work, and pricing outlined herein."}
+        </Text>
+
+        {/* Signature blocks */}
+        <View style={s.sigContainer}>
+          <View style={s.sigColumn}>
+            <View style={s.sigLine} />
+            <Text style={s.sigLabel}>Client Signature</Text>
+            <View style={s.sigLine} />
+            <Text style={s.sigLabel}>Printed Name</Text>
+            <View style={s.sigLine} />
+            <Text style={s.sigLabel}>Date</Text>
+          </View>
+          <View style={s.sigColumn}>
+            <View style={s.sigLine} />
+            <Text style={s.sigLabel}>Contractor Signature</Text>
+            <View style={s.sigLine} />
+            <Text style={s.sigLabel}>{companyName || "Company Representative"}</Text>
+            <View style={s.sigLine} />
+            <Text style={s.sigLabel}>Date</Text>
           </View>
         </View>
 
-        <View style={{ marginTop: 60, alignItems: "center" }}>
+        {/* Company branding footer */}
+        <View style={{ marginTop: spacing[16], alignItems: "center" }}>
           {logoPath && (
-            <Image src={logoPath} style={{ width: 40, height: 40, objectFit: "contain" as const, marginBottom: 8 }} />
+            <Image src={logoPath} style={{ width: 48, height: 48, objectFit: "contain" as const, marginBottom: spacing[2] }} />
           )}
-          <Text style={{ fontSize: 12, fontWeight: "bold", color: colors.primary }}>
+          <Text style={{ fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: tc.primary }}>
             {companyName}
           </Text>
-          {companyPhone && <Text style={{ fontSize: 9, color: "#9CA3AF" }}>{companyPhone}</Text>}
-          {companyEmail && <Text style={{ fontSize: 9, color: "#9CA3AF" }}>{companyEmail}</Text>}
-          {companyAddress && <Text style={{ fontSize: 9, color: "#9CA3AF" }}>{companyAddress}</Text>}
+          {companyPhone && <Text style={{ fontSize: fontSize.base, color: colors.gray400 }}>{companyPhone}</Text>}
+          {companyEmail && <Text style={{ fontSize: fontSize.base, color: colors.gray400 }}>{companyEmail}</Text>}
+          {companyAddress && <Text style={{ fontSize: fontSize.base, color: colors.gray400 }}>{companyAddress}</Text>}
         </View>
 
-        <Text style={styles.footerText}>
-          {footer.showGeneratedBy ? "Generated by EstimAI Pro — estimaipro.com" : ""}
-          {footer.customText ? ` | ${footer.customText}` : ""}
-        </Text>
+        <PDFPageFooter companyName={companyName} showBranding={footer.showGeneratedBy} />
       </Page>
     </Document>
   )

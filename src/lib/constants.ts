@@ -15,6 +15,9 @@ export const TIER_FEATURES = {
     winLossTracking: false,
     clientManagement: false,
     fullProposals: false,
+    editableTerms: false,
+    includeTerms: false,
+    contractMode: false,
   },
   STANDARD: {
     name: "Standard",
@@ -33,6 +36,9 @@ export const TIER_FEATURES = {
     winLossTracking: false,
     clientManagement: false,
     fullProposals: false,
+    editableTerms: true,
+    includeTerms: true,
+    contractMode: false,
   },
   PRO: {
     name: "Pro",
@@ -51,6 +57,9 @@ export const TIER_FEATURES = {
     winLossTracking: true,
     clientManagement: true,
     fullProposals: false,
+    editableTerms: true,
+    includeTerms: true,
+    contractMode: true,
   },
   MAX: {
     name: "Max",
@@ -69,6 +78,9 @@ export const TIER_FEATURES = {
     winLossTracking: true,
     clientManagement: true,
     fullProposals: true,
+    editableTerms: true,
+    includeTerms: true,
+    contractMode: true,
   },
 } as const
 

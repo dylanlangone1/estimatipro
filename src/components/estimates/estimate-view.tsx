@@ -20,6 +20,7 @@ import {
   CheckCircle,
   Info,
   DollarSign,
+  FileSignature,
 } from "lucide-react"
 import Link from "next/link"
 import { QuickTeachButton } from "@/components/training/quick-teach-button"
@@ -43,6 +44,7 @@ interface EstimateWithRelations {
   deviationAlerts: JsonValue | null
   confidenceScore: number | null
   proposalData: JsonValue | null
+  isContract: boolean
   createdAt: Date
   updatedAt: Date
   lineItems: Array<{
@@ -85,6 +87,23 @@ interface EstimateViewProps {
 export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: EstimateViewProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState("costs")
+  const [isContract, setIsContract] = useState(estimate.isContract)
+
+  const canContract = userTier === "PRO" || userTier === "MAX"
+
+  const toggleContract = useCallback(async () => {
+    const newValue = !isContract
+    setIsContract(newValue)
+    try {
+      await fetch(`/api/estimates/${estimate.id}/contract`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isContract: newValue }),
+      })
+    } catch {
+      setIsContract(!newValue) // revert on error
+    }
+  }, [isContract, estimate.id])
 
   // Local markup state — initialized from estimate, updated live by slider
   const [markupPercent, setMarkupPercent] = useState(estimate.markupPercent)
@@ -170,6 +189,22 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
           </div>
         </div>
         <div className="flex gap-2 shrink-0">
+          {canContract && (
+            <button
+              onClick={toggleContract}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                isContract
+                  ? "bg-brand-orange/10 border-brand-orange/30 text-brand-orange"
+                  : "bg-card border-card-border text-muted hover:text-foreground"
+              }`}
+              title={isContract ? "Switch to estimate mode" : "Switch to contract mode"}
+            >
+              <FileSignature className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {isContract ? "Contract" : "Estimate"}
+              </span>
+            </button>
+          )}
           <QuickTeachButton estimateId={estimate.id} />
           <ExportDropdown estimateId={estimate.id} userTier={userTier} />
         </div>

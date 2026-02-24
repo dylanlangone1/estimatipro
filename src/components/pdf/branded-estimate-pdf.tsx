@@ -6,23 +6,27 @@ import {
   Image,
   StyleSheet,
 } from "@react-pdf/renderer"
+import {
+  FONT_FAMILY,
+  fontSize,
+  fontWeight,
+  lineHeight,
+  spacing,
+  colors,
+  borderRadius,
+  PAGE_MARGIN,
+  PAGE_MARGIN_BOTTOM,
+  formatCurrency,
+  groupByCategory,
+  type PDFLineItem,
+} from "./pdf-design-system"
+import { PDFPageFooter, PDFTotalsBlock, PDFAccentBar } from "./pdf-shared-components"
 import type { TemplateConfig } from "@/types/proposal"
-
-interface LineItem {
-  category: string
-  description: string
-  quantity: number
-  unit: string
-  unitCost: number
-  totalCost: number
-  laborCost?: number | null
-  materialCost?: number | null
-}
 
 interface BrandedEstimatePDFProps {
   title: string
   description: string
-  lineItems: LineItem[]
+  lineItems: PDFLineItem[]
   subtotal: number
   markupPercent: number
   markupAmount: number
@@ -37,19 +41,6 @@ interface BrandedEstimatePDFProps {
   companyTagline?: string
   logoPath?: string
   templateConfig: TemplateConfig
-}
-
-function formatCurrency(amount: number) {
-  return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-function groupByCategory(items: LineItem[]): Record<string, LineItem[]> {
-  const groups: Record<string, LineItem[]> = {}
-  for (const item of items) {
-    if (!groups[item.category]) groups[item.category] = []
-    groups[item.category].push(item)
-  }
-  return groups
 }
 
 export function BrandedEstimatePDF({
@@ -71,251 +62,251 @@ export function BrandedEstimatePDF({
   logoPath,
   templateConfig,
 }: BrandedEstimatePDFProps) {
-  const { colors, header, body, totals, footer } = templateConfig
+  const { colors: tc, header, body, totals, footer } = templateConfig
   const grouped = groupByCategory(lineItems)
   const totalLabor = lineItems.reduce((sum, item) => sum + (item.laborCost || 0), 0)
   const totalMaterial = lineItems.reduce((sum, item) => sum + (item.materialCost || 0), 0)
   const hasLaborData = totalLabor > 0 || totalMaterial > 0
 
-  const styles = StyleSheet.create({
+  // Use Inter as default instead of Helvetica
+  const fontFamily = body.fontFamily === "Helvetica" ? FONT_FAMILY : (body.fontFamily || FONT_FAMILY)
+
+  const pdfColors = {
+    primary: tc.primary,
+    secondary: tc.secondary,
+    accent: tc.accent,
+    text: tc.text,
+    background: tc.background,
+  }
+
+  const s = StyleSheet.create({
     page: {
-      padding: 40,
-      fontSize: 10,
-      fontFamily: body.fontFamily || "Helvetica",
-      color: colors.text,
-      backgroundColor: colors.background,
+      padding: PAGE_MARGIN,
+      paddingBottom: PAGE_MARGIN_BOTTOM,
+      fontSize: fontSize.md,
+      fontFamily,
+      color: tc.text,
+      backgroundColor: tc.background,
     },
+    // ─── Header ───
     headerContainer: {
-      marginBottom: 24,
-      padding: 16,
-      backgroundColor: header.bgColor || colors.primary,
-      borderRadius: 6,
+      marginBottom: spacing[2],
+      padding: spacing[4],
+      backgroundColor: header.bgColor || tc.primary,
+      borderRadius: borderRadius.md,
       flexDirection: header.logoPosition === "center" ? "column" : "row",
       alignItems: header.logoPosition === "center" ? "center" : "flex-start",
-      gap: 12,
+      gap: spacing[3],
       borderLeftWidth: header.borderStyle === "accent" ? 5 : 0,
-      borderLeftColor: colors.accent,
+      borderLeftColor: tc.accent,
     },
     logo: {
-      width: 60,
-      height: 60,
+      width: 56,
+      height: 56,
       objectFit: "contain" as const,
     },
-    headerText: {
-      color: "#FFFFFF",
-    },
     companyName: {
-      fontSize: 20,
-      fontWeight: "bold",
-      color: "#FFFFFF",
+      fontSize: fontSize["5xl"],
+      fontWeight: fontWeight.bold,
+      color: colors.white,
       marginBottom: 2,
     },
     tagline: {
-      fontSize: 10,
-      color: "rgba(255,255,255,0.8)",
-      marginBottom: 4,
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.normal,
+      color: "rgba(255,255,255,0.75)",
+      marginBottom: spacing[1],
     },
     contactInfo: {
-      fontSize: 9,
-      color: "rgba(255,255,255,0.7)",
+      fontSize: fontSize.base,
+      color: "rgba(255,255,255,0.65)",
     },
     estimateTitle: {
-      fontSize: 11,
+      fontSize: fontSize.lg,
+      fontWeight: fontWeight.medium,
       color: "rgba(255,255,255,0.9)",
-      marginTop: 6,
+      marginTop: spacing[2],
     },
+    // ─── Section ───
     section: {
-      marginBottom: 16,
+      marginBottom: spacing[5],
     },
     sectionTitle: {
-      fontSize: 12,
-      fontWeight: "bold",
-      color: colors.primary,
-      marginBottom: 8,
-      paddingBottom: 4,
+      fontSize: fontSize.xl,
+      fontWeight: fontWeight.semibold,
+      color: tc.primary,
+      marginBottom: spacing[2],
+      paddingBottom: spacing[1],
       borderBottomWidth: 1,
-      borderBottomColor: `${colors.primary}30`,
+      borderBottomColor: `${tc.primary}30`,
     },
     descriptionText: {
-      fontSize: 10,
-      color: colors.text,
-      lineHeight: 1.5,
+      fontSize: fontSize.md,
+      color: tc.text,
+      lineHeight: lineHeight.relaxed,
     },
-    table: {
-      width: "100%",
+    dateText: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.medium,
+      color: colors.gray400,
+      marginBottom: spacing[4],
     },
+    // ─── Table ───
+    table: { width: "100%" },
     tableHeader: {
       flexDirection: "row",
-      backgroundColor: `${colors.primary}15`,
-      paddingVertical: 6,
-      paddingHorizontal: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: `${colors.primary}30`,
+      backgroundColor: `${tc.primary}12`,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderBottomWidth: 1.5,
+      borderBottomColor: `${tc.primary}30`,
+    },
+    tableHeaderText: {
+      fontWeight: fontWeight.medium,
+      fontSize: fontSize.sm,
+      color: tc.primary,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
     },
     tableRow: {
       flexDirection: "row",
-      paddingVertical: 5,
-      paddingHorizontal: 8,
+      paddingVertical: 7,
+      paddingHorizontal: 10,
       borderBottomWidth: 0.5,
-      borderBottomColor: "#E5E7EB",
+      borderBottomColor: colors.gray200,
     },
     tableRowAlt: {
-      backgroundColor: body.alternateRowBg ? `${colors.secondary}08` : "transparent",
+      backgroundColor: body.alternateRowBg ? `${tc.secondary}06` : "transparent",
     },
     categoryRow: {
       flexDirection: "row",
-      paddingVertical: 6,
-      paddingHorizontal: 8,
-      backgroundColor: body.categoryStyle === "banner" ? `${colors.primary}10` : "transparent",
+      alignItems: "center",
+      paddingVertical: 7,
+      paddingHorizontal: 10,
+      backgroundColor: body.categoryStyle === "banner" ? `${tc.primary}08` : "transparent",
       borderBottomWidth: body.categoryStyle === "underline" ? 2 : 0,
-      borderBottomColor: colors.primary,
+      borderBottomColor: tc.primary,
+      borderLeftWidth: body.categoryStyle === "banner" ? 3 : 0,
+      borderLeftColor: tc.primary,
+    },
+    categoryText: {
+      fontWeight: fontWeight.semibold,
+      fontSize: fontSize.md,
+      color: tc.primary,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
     },
     colDesc: { flex: 2 },
-    colQty: { width: 35, textAlign: "right" },
-    colUnit: { width: 30, textAlign: "center" },
-    colUnitCost: { width: 55, textAlign: "right" },
-    colLabor: { width: 55, textAlign: "right" },
-    colMaterial: { width: 55, textAlign: "right" },
-    colTotal: { width: 65, textAlign: "right" },
-    bold: { fontWeight: "bold" },
-    headerTextSmall: { fontWeight: "bold", fontSize: 9, color: colors.primary },
-    totalSection: {
-      marginTop: 16,
-      alignItems: "flex-end",
-    },
-    totalBox: {
-      width: 220,
-      padding: totals.style === "boxed" ? 12 : 0,
-      backgroundColor: totals.style === "boxed" ? `${colors.primary}08` : "transparent",
-      borderWidth: totals.style === "boxed" ? 1 : 0,
-      borderColor: `${colors.primary}20`,
-      borderRadius: totals.style === "boxed" ? 6 : 0,
-    },
-    totalRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      paddingVertical: 3,
-    },
-    grandTotal: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      paddingVertical: 6,
-      borderTopWidth: 2,
-      borderTopColor: totals.highlightColor,
-      marginTop: 4,
-    },
-    grandTotalText: {
-      fontSize: 14,
-      fontWeight: "bold",
-      color: totals.highlightColor,
-    },
-    notes: {
-      marginTop: 12,
-      padding: 10,
-      backgroundColor: `${colors.secondary}05`,
-      borderRadius: 4,
+    colQty: { width: 40, textAlign: "right" },
+    colUnit: { width: 35, textAlign: "center" },
+    colUnitCost: { width: 60, textAlign: "right" },
+    colLabor: { width: 60, textAlign: "right" },
+    colMaterial: { width: 60, textAlign: "right" },
+    colTotal: { width: 70, textAlign: "right" },
+    bold: { fontWeight: fontWeight.semibold },
+    muted: { color: colors.gray500 },
+    // ─── Assumptions ───
+    notesContainer: {
+      marginTop: spacing[4],
+      padding: spacing[3],
+      backgroundColor: `${tc.secondary}05`,
+      borderRadius: borderRadius.base,
       borderLeftWidth: 3,
-      borderLeftColor: colors.accent,
+      borderLeftColor: tc.accent,
     },
-    noteText: {
-      fontSize: 9,
-      color: "#6B7280",
+    notesTitle: {
+      fontSize: fontSize.base,
+      fontWeight: fontWeight.semibold,
+      color: tc.secondary,
+      marginBottom: spacing[1],
+    },
+    noteItem: {
+      fontSize: fontSize.base,
+      color: colors.gray500,
       marginBottom: 2,
-    },
-    footerText: {
-      position: "absolute",
-      bottom: 30,
-      left: 40,
-      right: 40,
-      textAlign: "center",
-      fontSize: 8,
-      color: "#9CA3AF",
+      lineHeight: lineHeight.normal,
     },
   })
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        {/* Branded Header */}
-        <View style={styles.headerContainer}>
+      <Page size="A4" style={s.page}>
+        {/* ─── Branded Header ─── */}
+        <View style={s.headerContainer}>
           {logoPath && header.logoPosition === "left" && (
-            <Image src={logoPath} style={styles.logo} />
+            <Image src={logoPath} style={s.logo} />
           )}
           <View style={header.logoPosition === "center" ? { alignItems: "center" } : {}}>
             {logoPath && header.logoPosition === "center" && (
-              <Image src={logoPath} style={{ ...styles.logo, marginBottom: 8 }} />
+              <Image src={logoPath} style={{ ...s.logo, marginBottom: spacing[2] }} />
             )}
-            <Text style={styles.companyName}>
-              {companyName || "Company Name"}
-            </Text>
+            <Text style={s.companyName}>{companyName || "Company Name"}</Text>
             {header.showTagline && companyTagline && (
-              <Text style={styles.tagline}>{companyTagline}</Text>
+              <Text style={s.tagline}>{companyTagline}</Text>
             )}
-            {companyPhone && <Text style={styles.contactInfo}>{companyPhone}</Text>}
-            {companyEmail && <Text style={styles.contactInfo}>{companyEmail}</Text>}
-            {companyAddress && <Text style={styles.contactInfo}>{companyAddress}</Text>}
-            <Text style={styles.estimateTitle}>Estimate: {title}</Text>
+            {companyPhone && <Text style={s.contactInfo}>{companyPhone}</Text>}
+            {companyEmail && <Text style={s.contactInfo}>{companyEmail}</Text>}
+            {companyAddress && <Text style={s.contactInfo}>{companyAddress}</Text>}
+            <Text style={s.estimateTitle}>Estimate: {title}</Text>
           </View>
         </View>
 
+        <PDFAccentBar color={tc.accent} height={3} marginVertical={spacing[3]} />
+
         {/* Date */}
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ fontSize: 9, color: "#9CA3AF" }}>Date: {createdAt}</Text>
-        </View>
+        <Text style={s.dateText}>Date: {createdAt}</Text>
 
         {/* Description */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Project Description</Text>
-          <Text style={styles.descriptionText}>{description}</Text>
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Project Description</Text>
+          <Text style={s.descriptionText}>{description}</Text>
         </View>
 
-        {/* Line Items */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Estimate Breakdown</Text>
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <Text style={{ ...styles.colDesc, ...styles.headerTextSmall }}>Description</Text>
-              <Text style={{ ...styles.colQty, ...styles.headerTextSmall }}>Qty</Text>
-              <Text style={{ ...styles.colUnit, ...styles.headerTextSmall }}>Unit</Text>
-              <Text style={{ ...styles.colUnitCost, ...styles.headerTextSmall }}>Unit Cost</Text>
+        {/* ─── Line Items ─── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Estimate Breakdown</Text>
+          <View style={s.table}>
+            <View style={s.tableHeader}>
+              <Text style={{ ...s.colDesc, ...s.tableHeaderText }}>Description</Text>
+              <Text style={{ ...s.colQty, ...s.tableHeaderText }}>Qty</Text>
+              <Text style={{ ...s.colUnit, ...s.tableHeaderText }}>Unit</Text>
+              <Text style={{ ...s.colUnitCost, ...s.tableHeaderText }}>Unit Cost</Text>
               {hasLaborData && (
                 <>
-                  <Text style={{ ...styles.colLabor, ...styles.headerTextSmall }}>Labor</Text>
-                  <Text style={{ ...styles.colMaterial, ...styles.headerTextSmall }}>Material</Text>
+                  <Text style={{ ...s.colLabor, ...s.tableHeaderText }}>Labor</Text>
+                  <Text style={{ ...s.colMaterial, ...s.tableHeaderText }}>Material</Text>
                 </>
               )}
-              <Text style={{ ...styles.colTotal, ...styles.headerTextSmall }}>Total</Text>
+              <Text style={{ ...s.colTotal, ...s.tableHeaderText }}>Total</Text>
             </View>
             {Object.entries(grouped).map(([category, items]) => (
               <View key={category}>
-                <View style={styles.categoryRow}>
-                  <Text style={{ ...styles.bold, fontSize: 10, color: colors.primary }}>
-                    {category}
-                  </Text>
+                <View style={s.categoryRow}>
+                  <Text style={s.categoryText}>{category}</Text>
                 </View>
                 {items.map((item, idx) => (
                   <View
                     key={idx}
                     style={{
-                      ...styles.tableRow,
-                      ...(idx % 2 === 1 ? styles.tableRowAlt : {}),
+                      ...s.tableRow,
+                      ...(idx % 2 === 1 ? s.tableRowAlt : {}),
                     }}
                   >
-                    <Text style={styles.colDesc}>{item.description}</Text>
-                    <Text style={styles.colQty}>{item.quantity.toLocaleString()}</Text>
-                    <Text style={styles.colUnit}>{item.unit}</Text>
-                    <Text style={styles.colUnitCost}>{formatCurrency(item.unitCost)}</Text>
+                    <Text style={s.colDesc}>{item.description}</Text>
+                    <Text style={s.colQty}>{item.quantity.toLocaleString()}</Text>
+                    <Text style={{ ...s.colUnit, ...s.muted }}>{item.unit}</Text>
+                    <Text style={s.colUnitCost}>{formatCurrency(item.unitCost)}</Text>
                     {hasLaborData && (
                       <>
-                        <Text style={styles.colLabor}>
+                        <Text style={{ ...s.colLabor, ...s.muted }}>
                           {item.laborCost ? formatCurrency(item.laborCost) : "\u2014"}
                         </Text>
-                        <Text style={styles.colMaterial}>
+                        <Text style={{ ...s.colMaterial, ...s.muted }}>
                           {item.materialCost ? formatCurrency(item.materialCost) : "\u2014"}
                         </Text>
                       </>
                     )}
-                    <Text style={{ ...styles.colTotal, ...styles.bold }}>
+                    <Text style={{ ...s.colTotal, ...s.bold }}>
                       {formatCurrency(item.totalCost)}
                     </Text>
                   </View>
@@ -325,61 +316,35 @@ export function BrandedEstimatePDF({
           </View>
         </View>
 
-        {/* Totals */}
-        <View style={styles.totalSection}>
-          <View style={styles.totalBox}>
-            {hasLaborData && (
-              <>
-                <View style={styles.totalRow}>
-                  <Text>Total Labor</Text>
-                  <Text>{formatCurrency(totalLabor)}</Text>
-                </View>
-                <View style={styles.totalRow}>
-                  <Text>Total Materials</Text>
-                  <Text>{formatCurrency(totalMaterial)}</Text>
-                </View>
-              </>
-            )}
-            <View style={styles.totalRow}>
-              <Text>Subtotal</Text>
-              <Text style={styles.bold}>{formatCurrency(subtotal)}</Text>
-            </View>
-            {markupPercent > 0 && (
-              <View style={styles.totalRow}>
-                <Text>Markup ({markupPercent}%)</Text>
-                <Text>{formatCurrency(markupAmount)}</Text>
-              </View>
-            )}
-            {taxAmount > 0 && (
-              <View style={styles.totalRow}>
-                <Text>Tax</Text>
-                <Text>{formatCurrency(taxAmount)}</Text>
-              </View>
-            )}
-            <View style={styles.grandTotal}>
-              <Text style={styles.grandTotalText}>Total</Text>
-              <Text style={styles.grandTotalText}>{formatCurrency(totalAmount)}</Text>
-            </View>
-          </View>
-        </View>
+        {/* ─── Totals ─── */}
+        <PDFTotalsBlock
+          subtotal={subtotal}
+          taxAmount={taxAmount}
+          markupPercent={markupPercent}
+          markupAmount={markupAmount}
+          totalAmount={totalAmount}
+          c={pdfColors}
+          laborTotal={hasLaborData ? totalLabor : undefined}
+          materialTotal={hasLaborData ? totalMaterial : undefined}
+        />
 
-        {/* Assumptions */}
+        {/* ─── Assumptions ─── */}
         {assumptions && assumptions.length > 0 && (
-          <View style={styles.notes}>
-            <Text style={{ ...styles.bold, fontSize: 9, marginBottom: 4 }}>Assumptions:</Text>
+          <View style={s.notesContainer}>
+            <Text style={s.notesTitle}>Assumptions</Text>
             {assumptions.map((a, i) => (
-              <Text key={i} style={styles.noteText}>
+              <Text key={i} style={s.noteItem}>
                 {"\u2022"} {a}
               </Text>
             ))}
           </View>
         )}
 
-        {/* Footer */}
-        <Text style={styles.footerText}>
-          {footer.showGeneratedBy ? "Generated by EstimAI Pro — estimaipro.com" : ""}
-          {footer.customText ? ` | ${footer.customText}` : ""}
-        </Text>
+        {/* ─── Footer ─── */}
+        <PDFPageFooter
+          companyName={companyName}
+          showBranding={footer.showGeneratedBy}
+        />
       </Page>
     </Document>
   )
