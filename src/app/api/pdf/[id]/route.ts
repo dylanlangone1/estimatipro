@@ -398,9 +398,12 @@ Return ONLY a JSON object:
       },
     })
   } catch (error) {
-    console.error("PDF generation error:", error)
+    const errMsg = error instanceof Error ? error.message : String(error)
+    const errStack = error instanceof Error ? error.stack : undefined
+    console.error("PDF generation error:", errMsg)
+    if (errStack) console.error("Stack:", errStack)
     return NextResponse.json(
-      { error: "Failed to generate PDF" },
+      { error: `Failed to generate PDF: ${errMsg}` },
       { status: 500 }
     )
   }

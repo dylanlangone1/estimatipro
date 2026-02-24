@@ -1,8 +1,10 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Tabs, TabPanel } from "@/components/ui/tabs"
 import { LineItemTable } from "@/components/estimates/line-item-table"
 import { EditBar } from "@/components/estimates/edit-bar"
@@ -12,6 +14,7 @@ import { AIWizard } from "@/components/estimates/ai-wizard"
 import { AnimatedCurrency } from "@/components/ui/animated-currency"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { Spinner } from "@/components/ui/spinner"
+import { useToast } from "@/components/ui/toast"
 import {
   FileText,
   ArrowLeft,
@@ -21,6 +24,9 @@ import {
   Info,
   DollarSign,
   FileSignature,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 import { QuickTeachButton } from "@/components/training/quick-teach-button"
@@ -85,9 +91,20 @@ interface EstimateViewProps {
 }
 
 export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: EstimateViewProps) {
+  const router = useRouter()
+  const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState("costs")
   const [isContract, setIsContract] = useState(estimate.isContract)
+
+  // ─── Inline editing state ───
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [editTitleValue, setEditTitleValue] = useState(estimate.title)
+  const [editingDescription, setEditingDescription] = useState(false)
+  const [editDescValue, setEditDescValue] = useState(estimate.description)
+  const [isSavingField, setIsSavingField] = useState(false)
+  const titleInputRef = useRef<HTMLInputElement>(null)
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const canContract = userTier === "PRO" || userTier === "MAX"
 
@@ -101,11 +118,11 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
         body: JSON.stringify({ isContract: newValue }),
       })
     } catch {
-      setIsContract(!newValue) // revert on error
+      setIsContract(!newValue)
     }
   }, [isContract, estimate.id])
 
-  // Local markup state — initialized from estimate, updated live by slider
+  // Local markup state
   const [markupPercent, setMarkupPercent] = useState(estimate.markupPercent)
   const [markupAmount, setMarkupAmount] = useState(estimate.markupAmount)
   const [totalAmount, setTotalAmount] = useState(estimate.totalAmount)
@@ -122,7 +139,28 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
     []
   )
 
-  // Calculate animation delay for totals (after all line items finish animating)
+  // ─── Inline save helpers ───
+  async function saveField(field: "title" | "description", value: string) {
+    setIsSavingField(true)
+    try {
+      const res = await fetch(`/api/estimates/${estimate.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      })
+      if (!res.ok) throw new Error("Save failed")
+      toast({ title: "Saved", variant: "success" })
+      router.refresh()
+    } catch {
+      toast({ title: "Failed to save", variant: "error" })
+    } finally {
+      setIsSavingField(false)
+      if (field === "title") setEditingTitle(false)
+      if (field === "description") setEditingDescription(false)
+    }
+  }
+
+  // Animation delay for totals
   const totalAnimationItems = estimate.lineItems.length + Object.keys(
     estimate.lineItems.reduce((acc, item) => {
       acc[item.category] = true
@@ -160,7 +198,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
 
       {/* Header — always visible above tabs */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <Link
             href="/estimates"
             className="inline-flex items-center text-sm text-muted hover:text-foreground mb-2"
@@ -168,7 +206,59 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Estimates
           </Link>
-          <h1 className="text-2xl font-bold text-foreground">{estimate.title}</h1>
+
+          {/* Editable Title */}
+          {editingTitle ? (
+            <div className="flex items-center gap-2 mb-1">
+              <input
+                ref={titleInputRef}
+                type="text"
+                value={editTitleValue}
+                onChange={(e) => setEditTitleValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveField("title", editTitleValue)
+                  if (e.key === "Escape") {
+                    setEditTitleValue(estimate.title)
+                    setEditingTitle(false)
+                  }
+                }}
+                className="text-2xl font-bold text-foreground bg-transparent border-b-2 border-brand-orange focus:outline-none w-full"
+                autoFocus
+                disabled={isSavingField}
+              />
+              <button
+                onClick={() => saveField("title", editTitleValue)}
+                disabled={isSavingField}
+                className="p-1 text-success hover:text-success/80"
+              >
+                <Check className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => {
+                  setEditTitleValue(estimate.title)
+                  setEditingTitle(false)
+                }}
+                className="p-1 text-muted hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          ) : (
+            <div className="group flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-foreground">{estimate.title}</h1>
+              <button
+                onClick={() => {
+                  setEditTitleValue(estimate.title)
+                  setEditingTitle(true)
+                }}
+                className="p-1 text-muted opacity-0 group-hover:opacity-100 hover:text-brand-orange transition-all"
+                title="Edit title"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
             <Badge variant={statusVariant[estimate.status] || "default"}>
               {estimate.status}
@@ -209,6 +299,12 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
           <ExportDropdown estimateId={estimate.id} userTier={userTier} />
         </div>
       </div>
+
+      {/* ─── AI Edit Bar — PROMINENT, right below header ─── */}
+      <EditBar
+        estimateId={estimate.id}
+        onEditStateChange={setIsEditing}
+      />
 
       {/* Tabs */}
       <Tabs value={activeTab} onChange={setActiveTab} tabs={tabItems} />
@@ -257,29 +353,79 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
           </Card>
         )}
 
-        {/* Project Description */}
+        {/* Project Description — Editable */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-brand-orange" />
-              <h2 className="font-semibold text-foreground">Project Description</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-brand-orange" />
+                <h2 className="font-semibold text-foreground">Project Description</h2>
+              </div>
+              {!editingDescription && (
+                <button
+                  onClick={() => {
+                    setEditDescValue(estimate.description)
+                    setEditingDescription(true)
+                  }}
+                  className="p-1.5 text-muted hover:text-brand-orange transition-colors rounded-lg hover:bg-card-border/20"
+                  title="Edit description"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-foreground whitespace-pre-wrap">
-              {estimate.description}
-            </p>
-            {assumptions.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-card-border">
-                <p className="text-sm font-medium text-muted mb-2">Assumptions:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  {assumptions.map((a, i) => (
-                    <li key={i} className="text-sm text-muted">
-                      {a}
-                    </li>
-                  ))}
-                </ul>
+            {editingDescription ? (
+              <div className="space-y-3">
+                <textarea
+                  ref={descTextareaRef}
+                  value={editDescValue}
+                  onChange={(e) => setEditDescValue(e.target.value)}
+                  className="w-full text-foreground bg-background border border-card-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/30 resize-y min-h-[120px]"
+                  rows={6}
+                  autoFocus
+                  disabled={isSavingField}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => saveField("description", editDescValue)}
+                    disabled={isSavingField}
+                  >
+                    {isSavingField ? <Spinner size="sm" className="mr-1" /> : <Check className="h-3.5 w-3.5 mr-1" />}
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditDescValue(estimate.description)
+                      setEditingDescription(false)
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                  </Button>
+                </div>
               </div>
+            ) : (
+              <>
+                <p className="text-foreground whitespace-pre-wrap">
+                  {estimate.description}
+                </p>
+                {assumptions.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-card-border">
+                    <p className="text-sm font-medium text-muted mb-2">Assumptions:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {assumptions.map((a, i) => (
+                        <li key={i} className="text-sm text-muted">
+                          {a}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -295,15 +441,20 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <LineItemTable lineItems={estimate.lineItems} showLabor={true} isNew={isNew} />
+            <LineItemTable
+              lineItems={estimate.lineItems}
+              showLabor={true}
+              isNew={isNew}
+              editable={true}
+              estimateId={estimate.id}
+            />
           </CardContent>
         </Card>
 
-        {/* Totals — uses local markup state */}
+        {/* Totals */}
         <Card>
           <CardContent className="py-4">
             <div className="space-y-2 max-w-sm ml-auto">
-              {/* Labor & Material Summary */}
               {(() => {
                 const totalLabor = estimate.lineItems.reduce((sum, item) => sum + (item.laborCost || 0), 0)
                 const totalMaterial = estimate.lineItems.reduce((sum, item) => sum + (item.materialCost || 0), 0)
@@ -447,13 +598,6 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
 
       {/* AI Wizard — floating advisor */}
       <AIWizard estimateId={estimate.id} />
-
-      {/* Edit Bar — always visible below tabs */}
-      <div className="pb-24" />
-      <EditBar
-        estimateId={estimate.id}
-        onEditStateChange={setIsEditing}
-      />
     </div>
   )
 }

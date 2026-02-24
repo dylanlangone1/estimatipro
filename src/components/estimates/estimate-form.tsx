@@ -48,6 +48,7 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [modeTransitioning, setModeTransitioning] = useState(false)
   const [location, setLocation] = useState("")
+  const [projectContext, setProjectContext] = useState("")
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // Switch mode with fade transition
@@ -72,6 +73,14 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
     setIsAiDone(false)
     setGeneratedId(null)
     setError(null)
+
+    // Capture project context for the loading overlay
+    const ctx = payload.mode === "ai"
+      ? payload.description
+      : payload.mode === "guided"
+        ? `${payload.projectType || ""} ${payload.sqft ? payload.sqft + " SF" : ""} ${payload.qualityLevel || ""} ${(payload.trades || []).join(", ")}`.trim()
+        : `${payload.projectType || ""} ${(payload.trades || []).join(", ")}`.trim()
+    setProjectContext(ctx)
 
     // Inject location into payload if provided
     const payloadWithLocation = {
@@ -196,6 +205,7 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
         isAiDone={isAiDone}
         onComplete={handleOverlayComplete}
         onCancel={handleOverlayCancel}
+        projectContext={projectContext}
       />
     </div>
   )

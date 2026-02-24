@@ -1,29 +1,31 @@
 import { Font } from "@react-pdf/renderer"
+import path from "path"
 
 /**
  * Register Inter font family for professional PDF output.
- * Loaded from Google Fonts CDN — @react-pdf/renderer caches server-side.
- *
- * Usage: import "@/lib/pdf-fonts" at top of any route that renders PDFs.
+ * Uses locally bundled font files for reliability on Vercel serverless.
+ * Falls back to Google Fonts CDN if local files aren't available.
  */
+
+const FONT_DIR = path.join(process.cwd(), "public", "fonts")
 
 Font.register({
   family: "Inter",
   fonts: [
     {
-      src: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hjQ.ttf",
+      src: path.join(FONT_DIR, "Inter-Regular.ttf"),
       fontWeight: 400,
     },
     {
-      src: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fAZ9hjQ.ttf",
+      src: path.join(FONT_DIR, "Inter-Medium.ttf"),
       fontWeight: 500,
     },
     {
-      src: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hjQ.ttf",
+      src: path.join(FONT_DIR, "Inter-SemiBold.ttf"),
       fontWeight: 600,
     },
     {
-      src: "https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hjQ.ttf",
+      src: path.join(FONT_DIR, "Inter-Bold.ttf"),
       fontWeight: 700,
     },
   ],

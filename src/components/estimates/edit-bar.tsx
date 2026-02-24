@@ -83,11 +83,21 @@ export function EditBar({ estimateId, onEditStateChange }: EditBarProps) {
   }
 
   return (
-    <div className="sticky bottom-0 bg-background border-t border-card-border shadow-lg z-10">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="bg-card border border-brand-orange/20 rounded-xl shadow-sm overflow-hidden">
+      <div className="px-4 py-3">
+        {/* Label */}
+        <div className="flex items-center gap-2 mb-2">
+          <Wand2 className="h-4 w-4 text-brand-orange" />
+          <span className="text-xs font-semibold text-brand-orange uppercase tracking-wide">
+            AI Edit
+          </span>
+          <span className="text-xs text-muted">
+            — Tell AI what to change
+          </span>
+        </div>
+
         {/* Edit input */}
         <div className="flex items-center gap-3">
-          <Wand2 className="h-5 w-5 text-brand-orange shrink-0" />
           <div className="flex-1 relative">
             <input
               type="text"
@@ -99,8 +109,8 @@ export function EditBar({ estimateId, onEditStateChange }: EditBarProps) {
                   handleEdit()
                 }
               }}
-              placeholder='Edit this estimate... (e.g., "Swap hardwood for LVP" or "Add 10% to all labor costs")'
-              className="w-full rounded-lg border border-card-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-transparent"
+              placeholder='e.g. "Swap hardwood for LVP", "Add 10% to all labor", "Remove drywall"'
+              className="w-full rounded-lg border border-card-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-transparent"
               disabled={isEditing}
             />
           </div>
