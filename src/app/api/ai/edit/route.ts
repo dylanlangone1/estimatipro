@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
     // Fetch pricing DNA and training context in parallel
     const [pricingProfile, trainingContext] = await Promise.all([
-      prisma.pricingProfile.findUnique({
+      prisma.pricingProfile.findFirst({
         where: { userId: session.user.id },
       }),
       loadTrainingContext(session.user.id, currentEstimate.description),

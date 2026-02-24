@@ -85,7 +85,7 @@ export async function POST(req: Request) {
 
     // Fetch user's pricing DNA, trades, material prices, and training context in parallel
     const [pricingProfile, user, materialLibrary, trainingContext] = await Promise.all([
-      prisma.pricingProfile.findUnique({
+      prisma.pricingProfile.findFirst({
         where: { userId: session.user.id },
       }),
       prisma.user.findUnique({
@@ -231,10 +231,37 @@ export async function POST(req: Request) {
       deviationAlerts: allAlerts,
     })
   } catch (error) {
-    console.error("Estimate generation error:", error)
+    // Detailed error logging for production debugging
+    const errMsg = error instanceof Error ? error.message : String(error)
+    const errStack = error instanceof Error ? error.stack : undefined
+    console.error("Estimate generation error:", {
+      message: errMsg,
+      stack: errStack,
+      name: error instanceof Error ? error.name : "Unknown",
+    })
+
+    // Return more specific error messages based on error type
+    if (errMsg.includes("No text response from AI")) {
+      return NextResponse.json(
+        { error: "AI returned an unexpected response. Please try again." },
+        { status: 500 }
+      )
+    }
+    if (errMsg.includes("JSON")) {
+      return NextResponse.json(
+        { error: "AI response format error. Please try again." },
+        { status: 500 }
+      )
+    }
+    if (errMsg.includes("timeout") || errMsg.includes("ETIMEDOUT")) {
+      return NextResponse.json(
+        { error: "Request timed out. Please try again." },
+        { status: 504 }
+      )
+    }
 
     return NextResponse.json(
-      { error: "Failed to generate estimate. Please try again." },
+      { error: `Failed to generate estimate: ${errMsg.slice(0, 120)}` },
       { status: 500 }
     )
   }

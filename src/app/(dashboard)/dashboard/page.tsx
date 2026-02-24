@@ -34,7 +34,7 @@ export default async function DashboardPage() {
       }),
     ])
 
-  const profile = await prisma.pricingProfile.findUnique({
+  const profile = await prisma.pricingProfile.findFirst({
     where: { userId: session.user.id },
     select: { totalEstimatesAnalyzed: true, totalDocumentsProcessed: true },
   })

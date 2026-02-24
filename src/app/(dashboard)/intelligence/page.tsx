@@ -35,7 +35,7 @@ export default async function IntelligencePage() {
   if (!session?.user?.id) return null
 
   const [profile, materials, invoiceAgg, estimateCount, docCount] = await Promise.all([
-    prisma.pricingProfile.findUnique({
+    prisma.pricingProfile.findFirst({
       where: { userId: session.user.id },
     }),
     prisma.materialPriceLibrary.findMany({
