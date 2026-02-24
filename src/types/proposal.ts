@@ -3,6 +3,8 @@ export interface ProposalData {
   scopeOfWork: { category: string; narrative: string }[]
   timeline: { phase: string; duration: string; description: string }[]
   terms: string
+  exclusions?: string
+  warranty?: string
   generatedAt: string
 }
 

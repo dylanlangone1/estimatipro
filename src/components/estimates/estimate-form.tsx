@@ -7,6 +7,7 @@ import { AiPromptMode } from "@/components/estimates/ai-prompt-mode"
 import { GuidedQuestionsMode } from "@/components/estimates/guided-questions-mode"
 import { ManualSelectionMode } from "@/components/estimates/manual-selection-mode"
 import { useToast } from "@/components/ui/toast"
+import { MapPin } from "lucide-react"
 import type {
   InputMode,
   GenerateEstimatePayload,
@@ -46,6 +47,7 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
   const [generatedId, setGeneratedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [modeTransitioning, setModeTransitioning] = useState(false)
+  const [location, setLocation] = useState("")
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // Switch mode with fade transition
@@ -71,6 +73,12 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
     setGeneratedId(null)
     setError(null)
 
+    // Inject location into payload if provided
+    const payloadWithLocation = {
+      ...payload,
+      ...(location.trim() ? { location: location.trim() } : {}),
+    }
+
     const controller = new AbortController()
     abortControllerRef.current = controller
 
@@ -78,7 +86,7 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
       const res = await fetch("/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payloadWithLocation),
         signal: controller.signal,
       })
 
@@ -128,6 +136,19 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-2">{heading}</h1>
         <p className="text-muted">{subheading}</p>
+      </div>
+
+      {/* Project Location (optional, applies to all modes) */}
+      <div className="mb-4 flex items-center gap-2 max-w-md mx-auto">
+        <MapPin className="h-4 w-4 text-muted shrink-0" />
+        <input
+          type="text"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="Project location (city, state or zip) — optional"
+          className="flex-1 text-sm bg-transparent border-b border-card-border focus:border-brand-orange text-foreground placeholder:text-muted/60 py-1 focus:outline-none transition-colors"
+          disabled={isGenerating}
+        />
       </div>
 
       {/* Active mode component */}

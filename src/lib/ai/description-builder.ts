@@ -84,7 +84,7 @@ const CATEGORY_CONTEXT: Record<ProjectCategory, string> = {
 - FOUNDATION: Full basement ($25-40/SF of footprint), crawl space ($12-20/SF), or slab on grade ($8-14/SF) — each has different cost implications. Full basement adds $30-50/SF to the build cost per SF of basement footprint.
 - GARAGE: Attached garage adds ~$75/SF of garage footprint (includes slab, framing, siding, roofing, electrical, garage door, opener, concrete apron). Detached garage adds $85-100/SF. A typical 2-car garage (576 SF) = $40K-50K.
 - DRIVEWAY: Gravel ($5-10/SF), asphalt ($6-12/SF), concrete ($10-18/SF). Include base prep, grading, and culvert if needed.
-- PERMITS: Building permit, electrical permit, plumbing permit, septic permit (if applicable), driveway permit. Typically 2-4% of project cost. May need wetlands, zoning, or environmental review.
+- PERMITS: Building permit, electrical permit, plumbing permit, septic permit (if applicable), driveway permit. If a project location is specified, use actual local permit fees for that jurisdiction. Otherwise use 1-3% of project cost. May need wetlands, zoning, or environmental review.
 - Include ALL utility rough-ins and connections as separate line items.`,
   renovation: `PROJECT CATEGORY: RENOVATION / REMODEL — Working within an existing structure. Key considerations:
 - EXISTING UTILITIES already in place — may need modification/upgrade, NOT new install (unless adding new fixtures/circuits).

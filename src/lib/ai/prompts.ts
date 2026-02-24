@@ -118,7 +118,7 @@ MANDATORY LINE ITEMS CHECKLIST
 Every estimate MUST include these where applicable (DO NOT SKIP):
 ✓ Demolition & haul-off (dumpster rental $500-800/load for 10-yd, $800-1200 for 20-yd)
 ✓ Site protection (floor/surface protection, dust barriers) — $1.00-2.50/SF
-✓ Permits & inspection fees — typically 2-4% of project cost, min $500-1000
+✓ Permits & inspection fees — If a PROJECT LOCATION is provided, research actual local permit costs for that jurisdiction (building permit, trade permits, impact fees). Many municipalities publish fee schedules. Use specific dollar amounts when known. If no location is provided, use 1-3% of project cost, min $500
 ✓ Project management / supervision — typically 8-12% of labor costs
 ✓ General conditions (portable toilet $200-350/mo, temp power, temp water, signage)
 ✓ Material delivery charges — $100-350 per delivery

@@ -11,6 +11,7 @@ export interface AiModePayload {
   mode: "ai"
   description: string
   clientId?: string
+  location?: string
 }
 
 export interface GuidedModePayload {
@@ -21,6 +22,7 @@ export interface GuidedModePayload {
   qualityLevel: string
   notes?: string
   clientId?: string
+  location?: string
 }
 
 export interface ManualModePayload {
@@ -31,6 +33,7 @@ export interface ManualModePayload {
   qualityLevel: string
   notes?: string
   clientId?: string
+  location?: string
 }
 
 export type GenerateEstimatePayload =

@@ -61,6 +61,9 @@ export async function POST(req: Request) {
     let tradesOverride: string[] | undefined
     let qualityLevel: string | undefined
 
+    // Extract location from payload (optional, all modes)
+    const location = body.location?.trim() || ""
+
     if (input.mode === "guided") {
       description = buildDescriptionFromGuided(input)
       tradesOverride = input.trades
@@ -71,6 +74,13 @@ export async function POST(req: Request) {
       qualityLevel = input.qualityLevel
     } else {
       description = input.description
+    }
+
+    // Append location context for permit cost intelligence
+    if (location) {
+      description += `\n\nPROJECT LOCATION: ${location}. PERMITS: Research actual permit costs for ${location}. Include building permit, trade permits (electrical, plumbing, mechanical), and any local impact/development fees. If exact costs are known for this jurisdiction, use them as specific dollar amounts rather than percentages. Otherwise estimate based on regional averages for this area.`
+    } else {
+      description += `\n\nPERMIT NOTE: No project location specified. Use 1-3% of project cost as permit allowance, minimum $500.`
     }
 
     // Fetch user's pricing DNA, trades, material prices, and training context in parallel

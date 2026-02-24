@@ -9,6 +9,26 @@ import { requireFeature } from "@/lib/tiers"
 import React from "react"
 import type { TemplateConfig, ProposalData } from "@/types/proposal"
 
+/**
+ * Fetches a logo image and converts it to a base64 data URI.
+ * @react-pdf/renderer handles data URIs reliably, avoiding CORS
+ * and network issues that occur with external URLs (Vercel Blob, etc.).
+ */
+async function fetchLogoAsBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, { cache: "no-store" })
+    if (!response.ok) return null
+
+    const contentType = response.headers.get("content-type") || "image/png"
+    const arrayBuffer = await response.arrayBuffer()
+    const base64 = Buffer.from(arrayBuffer).toString("base64")
+    return `data:${contentType};base64,${base64}`
+  } catch (error) {
+    console.error("Failed to fetch logo for PDF:", error)
+    return null
+  }
+}
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -73,8 +93,11 @@ export async function GET(
       .filter(Boolean)
       .join(", ") || undefined
 
-    // Logo URL — works with both Vercel Blob URLs and local paths
-    const logoPath = user.logoUrl || undefined
+    // Convert logo to base64 data URI for reliable PDF embedding
+    // External URLs (Vercel Blob) can fail due to CORS in @react-pdf/renderer
+    const logoPath = user.logoUrl
+      ? await fetchLogoAsBase64(user.logoUrl) ?? undefined
+      : undefined
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let pdfElement: any

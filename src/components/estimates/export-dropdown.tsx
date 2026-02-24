@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
@@ -10,6 +11,7 @@ import {
   FileText,
   Palette,
   BookOpen,
+  Pencil,
   Lock,
   ChevronDown,
 } from "lucide-react"
@@ -27,6 +29,7 @@ interface ExportDropdownProps {
 
 export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
   const { toast } = useToast()
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [isGeneratingProposal, setIsGeneratingProposal] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -171,6 +174,40 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
                 {!canProposal && <Lock className="h-3 w-3 text-muted" />}
               </p>
               <p className="text-xs text-muted">7-page document with scope & timeline</p>
+            </div>
+            {!canProposal && (
+              <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                MAX
+              </Badge>
+            )}
+          </button>
+
+          {/* Divider */}
+          <div className="border-t border-card-border my-1" />
+
+          {/* Edit Proposal */}
+          <button
+            onClick={() => {
+              if (!canProposal) {
+                toast({
+                  title: "Max plan required",
+                  description: "Upgrade to Max to create and edit proposals.",
+                  variant: "warning",
+                })
+                return
+              }
+              setIsOpen(false)
+              router.push(`/estimate/${estimateId}/proposal`)
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left"
+          >
+            <Pencil className="h-4 w-4 text-brand-orange shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium flex items-center gap-2">
+                Edit Proposal
+                {!canProposal && <Lock className="h-3 w-3 text-muted" />}
+              </p>
+              <p className="text-xs text-muted">Customize before downloading</p>
             </div>
             {!canProposal && (
               <Badge variant="default" className="text-[10px] px-1.5 py-0">

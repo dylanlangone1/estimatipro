@@ -473,6 +473,24 @@ export function BrandSettings({ user, activeTemplate }: BrandSettingsProps) {
                 <Button variant="outline" onClick={handleDesignTemplate} disabled={isDesigning}>
                   Redesign
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPreviewConfig({
+                      header: { logoPosition: "left", showTagline: true, borderStyle: "accent", bgColor: brandColors.primary },
+                      body: { fontFamily: "Helvetica", alternateRowBg: true, categoryStyle: "banner" },
+                      totals: { style: "boxed", highlightColor: brandColors.primary },
+                      footer: { showGeneratedBy: true, customText: "" },
+                      colors: { primary: brandColors.primary, secondary: brandColors.secondary, accent: brandColors.accent, text: "#1F2937", background: "#FFFFFF" },
+                    })
+                    setTemplateSaved(false)
+                    toast({ title: "Reset to default", description: "Template reset. Click Save to apply.", variant: "success" })
+                  }}
+                  className="text-muted hover:text-foreground"
+                >
+                  Reset to Default
+                </Button>
               </div>
             </div>
           )}

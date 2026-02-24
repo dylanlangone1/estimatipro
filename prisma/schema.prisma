@@ -203,6 +203,9 @@ model Client {
   address String?
   notes   String? @db.Text
 
+  // Saved proposal defaults (aboutUs, terms) for consistency across estimates
+  proposalDefaults Json?
+
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   estimates Estimate[]
 

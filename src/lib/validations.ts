@@ -61,6 +61,7 @@ const aiModeSchema = z.object({
   description: z.string().min(10, "Please describe the project in at least 10 characters"),
   projectType: z.string().optional(),
   clientId: z.string().optional(),
+  location: z.string().optional(),
 })
 
 const guidedModeSchema = z.object({
@@ -71,6 +72,7 @@ const guidedModeSchema = z.object({
   qualityLevel: z.enum(["budget", "standard", "premium", "luxury"]),
   notes: z.string().optional(),
   clientId: z.string().optional(),
+  location: z.string().optional(),
 })
 
 const manualModeSchema = z.object({
@@ -81,6 +83,7 @@ const manualModeSchema = z.object({
   qualityLevel: z.enum(["budget", "standard", "premium", "luxury"]),
   notes: z.string().optional(),
   clientId: z.string().optional(),
+  location: z.string().optional(),
 })
 
 export const generateEstimateInputSchema = z.discriminatedUnion("mode", [
