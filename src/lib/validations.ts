@@ -125,6 +125,8 @@ export const supplierItemSchema = z.object({
   normalizedName: z.string().optional(),
   normalizedUnit: z.string().optional(),
   normalizedUnitPrice: z.number().optional(),
+  brandName: z.string().optional(),
+  productLine: z.string().optional(),
 })
 
 export const supplierInvoiceResponseSchema = z.object({

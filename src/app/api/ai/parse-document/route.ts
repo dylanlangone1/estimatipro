@@ -6,6 +6,7 @@ import { classifyDocument } from "@/lib/ai/document-classifier"
 import { parseDocument } from "@/lib/ai/document-parser"
 import { parseSupplierInvoice } from "@/lib/ai/supplier-invoice-parser"
 import { updateMaterialLibrary } from "@/lib/ai/material-library-engine"
+import { extractAndSaveBrands } from "@/lib/ai/brand-extraction-engine"
 import { recalculatePricingDNA } from "@/lib/ai/pricing-dna-engine"
 
 export async function POST(req: Request) {
@@ -132,6 +133,9 @@ export async function POST(req: Request) {
 
         // Update material library from this invoice
         await updateMaterialLibrary(session.user.id, invoice.id)
+
+        // Extract and save brands from this invoice
+        await extractAndSaveBrands(session.user.id, invoiceData)
 
         // Recalculate Pricing DNA
         await recalculatePricingDNA(session.user.id)

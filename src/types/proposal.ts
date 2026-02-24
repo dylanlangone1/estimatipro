@@ -1,3 +1,8 @@
+export interface CategoryNarrative {
+  category: string
+  narrative: string
+}
+
 export interface ProposalData {
   aboutUs: string
   scopeOfWork: { category: string; narrative: string }[]
@@ -6,6 +11,7 @@ export interface ProposalData {
   exclusions?: string
   warranty?: string
   generatedAt: string
+  categoryNarratives?: CategoryNarrative[]
 }
 
 export interface TemplateConfig {

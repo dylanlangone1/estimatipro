@@ -222,6 +222,7 @@ export function buildEstimateUserPrompt(
   trades?: string[],
   materialPrices?: Array<{ materialName: string; avgUnitPrice: number; unit: string; lastUnitPrice: number }>,
   qualityLevel?: string,
+  brandContext?: string,
 ): string {
   let prompt = `Generate a comprehensive, professional construction estimate for:\n\n${description}`
 
@@ -281,6 +282,11 @@ ${summaryParts.join("\n")}
     }
   }
 
+  // Inject saved brand preferences
+  if (brandContext && brandContext.trim().length > 0) {
+    prompt += `\n${brandContext}`
+  }
+
   return prompt
 }
 
@@ -327,6 +333,12 @@ For each item, also provide normalized fields:
 - normalizedUnit: Standard unit (ea, lf, sf, cy, gal, etc.)
 - normalizedUnitPrice: Price converted to the normalized unit
 
+BRAND EXTRACTION:
+For each item, if a manufacturer/brand name is identifiable, extract:
+- brandName: The manufacturer or brand (e.g., "Matthews Brothers", "Lifeproof", "Therma-Tru", "Moen", "Andersen", "Pella")
+- productLine: The specific product line or series if visible (e.g., "N300 Series", "Sterling Oak", "Classic-Craft")
+Only include brandName if you can clearly identify a brand — do NOT guess. Common construction brands include window, door, flooring, fixture, and appliance manufacturers.
+
 CRITICAL: Be thorough. Extract EVERY line item. Respond with valid JSON only — no markdown, no code fences:
 {
   "supplierName": "Home Depot",
@@ -343,7 +355,9 @@ CRITICAL: Be thorough. Extract EVERY line item. Respond with valid JSON only —
       "totalPrice": 199.00,
       "normalizedName": "2x4 Stud",
       "normalizedUnit": "ea",
-      "normalizedUnitPrice": 3.98
+      "normalizedUnitPrice": 3.98,
+      "brandName": null,
+      "productLine": null
     }
   ],
   "subtotal": 500.00,

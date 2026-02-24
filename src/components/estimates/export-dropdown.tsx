@@ -14,6 +14,7 @@ import {
   Pencil,
   Lock,
   ChevronDown,
+  Users,
 } from "lucide-react"
 import type { SubscriptionTier } from "@/generated/prisma/client"
 
@@ -49,6 +50,11 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
 
   const canBranded = tierAtLeast(userTier, "PRO")
   const canProposal = tierAtLeast(userTier, "MAX")
+
+  function handleClientPdf() {
+    window.open(`/api/pdf/${estimateId}?type=client`, "_blank")
+    setIsOpen(false)
+  }
 
   function handleStandardPdf() {
     window.open(`/api/pdf/${estimateId}?type=standard`, "_blank")
@@ -130,6 +136,18 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-64 bg-card border border-card-border rounded-xl shadow-lg z-20 py-1 animate-fade-in">
+          {/* Client Estimate — recommended, all tiers */}
+          <button
+            onClick={handleClientPdf}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left"
+          >
+            <Users className="h-4 w-4 text-brand-orange shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium">Client Estimate</p>
+              <p className="text-xs text-muted">Professional, client-ready PDF</p>
+            </div>
+          </button>
+
           {/* Standard PDF */}
           <button
             onClick={handleStandardPdf}
@@ -138,7 +156,7 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
             <FileText className="h-4 w-4 text-muted shrink-0" />
             <div className="flex-1">
               <p className="font-medium">Standard PDF</p>
-              <p className="text-xs text-muted">Clean, unbranded estimate</p>
+              <p className="text-xs text-muted">Internal detail estimate</p>
             </div>
           </button>
 

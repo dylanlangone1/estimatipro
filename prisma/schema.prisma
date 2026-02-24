@@ -45,6 +45,9 @@ model User {
   // Estimate form preferences (auto-saved from guided/manual modes)
   estimatePreferences Json?
 
+  // Custom quality/finish levels (user-defined via AI prompt)
+  customFinishLevels Json?
+
   // Relations
   accounts         Account[]
   sessions         Session[]
@@ -58,6 +61,7 @@ model User {
   correctionLogs   CorrectionLog[]
   contextRules     ContextRule[]
   brandTemplates   BrandTemplate[]
+  materialBrands   MaterialBrand[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -345,6 +349,26 @@ model MaterialPriceLibrary {
   @@unique([userId, materialName])
   @@index([userId])
   @@index([userId, priceCount(sort: Desc)])
+}
+
+// ─── Material Brands (extracted from invoices) ───
+
+model MaterialBrand {
+  id          String   @id @default(cuid())
+  userId      String
+  brandName   String
+  category    String
+  productLine String?
+  notes       String?
+  timesUsed   Int      @default(1)
+  lastSeenAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, brandName, category])
+  @@index([userId])
 }
 
 // ─── Brand Templates (Pro+) ───

@@ -10,6 +10,7 @@ export async function generateEstimate(
   materialPrices?: Array<{ materialName: string; avgUnitPrice: number; unit: string; lastUnitPrice: number }>,
   systemPrompt?: string,
   qualityLevel?: string,
+  brandContext?: string,
 ): Promise<AIEstimateResponse> {
   const response = await anthropic.messages.create({
     model: AI_MODEL,
@@ -24,7 +25,7 @@ export async function generateEstimate(
     messages: [
       {
         role: "user",
-        content: buildEstimateUserPrompt(description, pricingDna, trades, materialPrices, qualityLevel),
+        content: buildEstimateUserPrompt(description, pricingDna, trades, materialPrices, qualityLevel, brandContext),
       },
     ],
   })

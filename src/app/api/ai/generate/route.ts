@@ -7,6 +7,7 @@ import { loadTrainingContext } from "@/lib/ai/training-context-loader"
 import { buildEnhancedSystemPrompt, ESTIMATE_SYSTEM_PROMPT } from "@/lib/ai/prompts"
 import { validateEstimateCoherence } from "@/lib/ai/coherence-engine"
 import { checkLimit } from "@/lib/tiers"
+import { getBrandContext } from "@/lib/ai/brand-extraction-engine"
 import { buildDescriptionFromGuided, buildDescriptionFromManual } from "@/lib/ai/description-builder"
 
 export async function POST(req: Request) {
@@ -113,6 +114,9 @@ export async function POST(req: Request) {
       recentCorrections: trainingContext.recentCorrections,
     })
 
+    // Load saved brand preferences for injection
+    const brandContext = await getBrandContext(session.user.id)
+
     // Generate the estimate via AI with all context
     // Use tradesOverride from guided/manual modes, or fall back to user profile trades
     const aiResponse = await generateEstimate(
@@ -122,6 +126,7 @@ export async function POST(req: Request) {
       materialLibrary.length > 0 ? materialLibrary : undefined,
       enhancedPrompt,
       qualityLevel,
+      brandContext || undefined,
     )
 
     // Run coherence check against context rules

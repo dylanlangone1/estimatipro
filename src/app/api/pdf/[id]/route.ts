@@ -5,9 +5,10 @@ import { renderToBuffer } from "@react-pdf/renderer"
 import { EstimatePDF } from "@/components/pdf/estimate-pdf"
 import { BrandedEstimatePDF } from "@/components/pdf/branded-estimate-pdf"
 import { ProposalPDF } from "@/components/pdf/proposal-pdf"
+import { ClientEstimatePDF } from "@/components/pdf/client-estimate-pdf"
 import { requireFeature } from "@/lib/tiers"
 import React from "react"
-import type { TemplateConfig, ProposalData } from "@/types/proposal"
+import type { TemplateConfig, ProposalData, CategoryNarrative } from "@/types/proposal"
 
 /**
  * Fetches a logo image and converts it to a base64 data URI.
@@ -103,7 +104,68 @@ export async function GET(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let pdfElement: any
 
-    if (pdfType === "branded") {
+    if (pdfType === "client") {
+      // Client-facing PDF — available to ALL tiers, enhanced for PRO+
+      const isPro = user.tier === "PRO" || user.tier === "MAX"
+
+      // Build category summaries with markup baked in
+      const catGroups: Record<string, { items: typeof lineItems; rawTotal: number }> = {}
+      for (const item of lineItems) {
+        if (!catGroups[item.category]) catGroups[item.category] = { items: [], rawTotal: 0 }
+        catGroups[item.category].items.push(item)
+        catGroups[item.category].rawTotal += item.totalCost
+      }
+
+      const multiplier = 1 + estimate.markupPercent / 100
+
+      // Get category narratives from proposalData
+      const proposalDataRaw = estimate.proposalData as unknown as ProposalData | null
+      const savedNarratives: CategoryNarrative[] = proposalDataRaw?.categoryNarratives || []
+
+      const categories = Object.entries(catGroups).map(([category, data]) => ({
+        category,
+        narrative: savedNarratives.find((n) => n.category === category)?.narrative || "",
+        clientTotal: data.rawTotal * multiplier,
+        itemCount: data.items.length,
+      }))
+
+      const clientSubtotal = estimate.subtotal + estimate.markupAmount
+
+      // Fetch brand colors for PRO+ users
+      let primaryColor = "#E94560"
+      let accentColor = "#1A1A2E"
+      if (isPro) {
+        const template = await prisma.brandTemplate.findFirst({
+          where: { userId: session.user.id, isActive: true },
+          orderBy: { updatedAt: "desc" },
+        })
+        if (template) {
+          const tc = template.templateConfig as unknown as TemplateConfig
+          primaryColor = tc.colors.primary
+          accentColor = tc.colors.secondary
+        }
+      }
+
+      pdfElement = React.createElement(ClientEstimatePDF, {
+        title: estimate.title,
+        description: estimate.description,
+        categories,
+        clientSubtotal,
+        taxAmount: estimate.taxAmount,
+        clientTotal: estimate.totalAmount,
+        createdAt,
+        companyName: user.companyName || undefined,
+        companyPhone: user.phone || undefined,
+        companyEmail: user.email,
+        companyAddress,
+        companyTagline: user.tagline || undefined,
+        clientName: estimate.client?.name || undefined,
+        logoPath: isPro ? logoPath : undefined,
+        primaryColor,
+        accentColor,
+        includeTerms: isPro,
+      })
+    } else if (pdfType === "branded") {
       // PRO+ tier required
       try {
         await requireFeature(session.user.id, "brandedPdf")
@@ -279,9 +341,12 @@ Return ONLY a JSON object:
 
     const buffer = await renderToBuffer(pdfElement)
 
+    const cleanTitle = estimate.title.replace(/[^a-zA-Z0-9 ]/g, "")
     const filename = pdfType === "proposal"
-      ? `${estimate.title.replace(/[^a-zA-Z0-9 ]/g, "")} - Proposal`
-      : estimate.title.replace(/[^a-zA-Z0-9 ]/g, "")
+      ? `${cleanTitle} - Proposal`
+      : pdfType === "client"
+        ? `${cleanTitle} - Client Estimate`
+        : cleanTitle
 
     return new Response(new Uint8Array(buffer), {
       headers: {

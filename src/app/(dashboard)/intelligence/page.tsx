@@ -12,6 +12,7 @@ import {
   FileText,
   Package,
   Store,
+  Tag,
 } from "lucide-react"
 import Link from "next/link"
 import { MaterialLibraryTable } from "@/components/intelligence/material-library-table"
@@ -34,7 +35,7 @@ export default async function IntelligencePage() {
   const session = await auth()
   if (!session?.user?.id) return null
 
-  const [profile, materials, invoiceAgg, estimateCount, docCount] = await Promise.all([
+  const [profile, materials, invoiceAgg, estimateCount, docCount, savedBrands] = await Promise.all([
     prisma.pricingProfile.findFirst({
       where: { userId: session.user.id },
     }),
@@ -49,6 +50,10 @@ export default async function IntelligencePage() {
     }),
     prisma.estimate.count({ where: { userId: session.user.id } }),
     prisma.uploadedDocument.count({ where: { userId: session.user.id } }),
+    prisma.materialBrand.findMany({
+      where: { userId: session.user.id },
+      orderBy: [{ timesUsed: "desc" }, { lastSeenAt: "desc" }],
+    }),
   ])
 
   // Calculate DNA strength from multiple data sources
@@ -275,6 +280,39 @@ export default async function IntelligencePage() {
                 bestSupplier: m.bestSupplier,
               }))}
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Saved Brands */}
+      {savedBrands.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Tag className="h-5 w-5 text-brand-orange" />
+              <h2 className="font-semibold text-foreground">Saved Brands</h2>
+            </div>
+            <p className="text-sm text-muted">
+              Brands extracted from your invoices — automatically referenced in future estimates.
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-card-border">
+              {savedBrands.map((brand) => (
+                <div key={brand.id} className="flex items-center justify-between px-6 py-3">
+                  <div>
+                    <p className="font-medium text-foreground">{brand.brandName}</p>
+                    <p className="text-sm text-muted">
+                      {brand.category}
+                      {brand.productLine && <span> &middot; {brand.productLine}</span>}
+                    </p>
+                  </div>
+                  <Badge variant="outline">
+                    {brand.timesUsed}x
+                  </Badge>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

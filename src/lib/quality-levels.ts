@@ -31,6 +31,40 @@ export const QUALITY_LEVELS = [
 
 export type QualityLevelKey = (typeof QUALITY_LEVELS)[number]["key"]
 
+/** Custom finish level structure (stored in user.customFinishLevels) */
+export interface CustomFinishLevel {
+  name: string
+  description: string
+  materialExamples: string[]
+  priceMultiplier: number
+}
+
+/**
+ * Converts custom finish levels into the QUALITY_LEVELS format for the guided questions UI.
+ * Falls back to system defaults if no custom levels exist.
+ */
+export function getUserQualityLevels(
+  customLevels?: CustomFinishLevel[] | null
+): Array<{
+  key: string
+  label: string
+  description: string
+  materialMultiplier: number
+  laborMultiplier: number
+}> {
+  if (!customLevels || customLevels.length === 0) {
+    return [...QUALITY_LEVELS]
+  }
+
+  return customLevels.map((level) => ({
+    key: level.name.toLowerCase().replace(/\s+/g, "_"),
+    label: level.name,
+    description: `${level.description} (${level.materialExamples.slice(0, 3).join(", ")})`,
+    materialMultiplier: level.priceMultiplier,
+    laborMultiplier: level.priceMultiplier >= 1.5 ? 1.15 + (level.priceMultiplier - 1.5) * 0.2 : 1.0,
+  }))
+}
+
 /**
  * Cost-per-SF benchmarks by project type and quality level (installed, before markup).
  * Updated to reflect real-world 2025-2026 construction costs.

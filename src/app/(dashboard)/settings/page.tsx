@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { ProfileForm } from "@/components/settings/profile-form"
+import { FinishLevelsSettings } from "@/components/settings/finish-levels-settings"
 
 export default async function SettingsPage() {
   const session = await auth()
@@ -25,5 +26,10 @@ export default async function SettingsPage() {
 
   if (!user) return null
 
-  return <ProfileForm user={user} />
+  return (
+    <div className="space-y-6">
+      <ProfileForm user={user} />
+      <FinishLevelsSettings />
+    </div>
+  )
 }
