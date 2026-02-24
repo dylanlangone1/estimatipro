@@ -78,21 +78,22 @@ const PROJECT_CATEGORY: Record<string, ProjectCategory> = {
  * Tells the AI what's fundamentally different about this type of work.
  */
 const CATEGORY_CONTEXT: Record<ProjectCategory, string> = {
-  new_build: `PROJECT CATEGORY: NEW BUILD — Building from scratch or adding new structure. Key considerations:
-- UTILITIES: Water supply (drilled well $5K-15K, dug well $3K-8K, OR municipal water connection $2K-8K). Sewer (septic system with tank + leach field $10K-25K, OR municipal sewer connection $3K-10K). Electrical service from utility ($2K-5K). Gas service or propane tank if applicable.
-- SITE WORK: Survey, soil/perc test, clearing, stumping, erosion control, grading, access road. Tree removal if needed.
-- FOUNDATION: Full basement, crawl space, or slab on grade — each has different cost implications.
-- DRIVEWAY: Gravel ($3-8/SF), asphalt ($4-10/SF), concrete ($8-15/SF). Include base prep and grading.
-- PERMITS: Building permit, electrical permit, plumbing permit, septic permit (if applicable), driveway permit. May need wetlands, zoning, or environmental review.
+  new_build: `PROJECT CATEGORY: NEW BUILD — Building from scratch or adding new structure. TURNKEY new homes cost $250-350/SF minimum for standard quality. Key considerations:
+- UTILITIES: Water supply (drilled well $8K-20K, dug well $5K-12K, OR municipal water connection $3K-10K). Sewer (septic system with tank + leach field $15K-30K, OR municipal sewer connection $5K-12K). Electrical service from utility ($3K-7K). Gas service or propane tank ($2K-5K) if applicable.
+- SITE WORK: Survey ($2K-5K), soil/perc test ($500-1500), clearing/stumping ($3K-15K), erosion control, grading ($5K-15K), access road. Tree removal if needed ($500-2500/tree).
+- FOUNDATION: Full basement ($25-40/SF of footprint), crawl space ($12-20/SF), or slab on grade ($8-14/SF) — each has different cost implications. Full basement adds $30-50/SF to the build cost per SF of basement footprint.
+- GARAGE: Attached garage adds ~$75/SF of garage footprint (includes slab, framing, siding, roofing, electrical, garage door, opener, concrete apron). Detached garage adds $85-100/SF. A typical 2-car garage (576 SF) = $40K-50K.
+- DRIVEWAY: Gravel ($5-10/SF), asphalt ($6-12/SF), concrete ($10-18/SF). Include base prep, grading, and culvert if needed.
+- PERMITS: Building permit, electrical permit, plumbing permit, septic permit (if applicable), driveway permit. Typically 2-4% of project cost. May need wetlands, zoning, or environmental review.
 - Include ALL utility rough-ins and connections as separate line items.`,
   renovation: `PROJECT CATEGORY: RENOVATION / REMODEL — Working within an existing structure. Key considerations:
 - EXISTING UTILITIES already in place — may need modification/upgrade, NOT new install (unless adding new fixtures/circuits).
-- DEMOLITION of existing finishes required before new work. Include haul-off and dumpster.
-- PROTECTION of existing finishes not being remodeled (floors, walls, furniture, fixtures).
+- DEMOLITION of existing finishes required before new work. Include haul-off and dumpster ($500-800/load for 10-yd, $800-1200 for 20-yd).
+- PROTECTION of existing finishes not being remodeled (floors, walls, furniture, fixtures) — $1.00-2.50/SF.
 - MATCHING existing materials where new meets old (paint, flooring transitions, trim profiles).
 - OCCUPIED SPACE: May need to work around homeowner's schedule. Consider dust barriers, temporary pathways.
-- PRE-1978 HOMES: May need lead paint testing ($300-500) and/or asbestos testing ($200-600). If positive, abatement costs are significant.
-- STRUCTURAL MODIFICATIONS may need engineering review ($500-2,000 for residential).
+- PRE-1978 HOMES: May need lead paint testing ($400-700) and/or asbestos testing ($300-800). If positive, abatement costs are significant ($5-25/SF).
+- STRUCTURAL MODIFICATIONS may need engineering review ($800-3,000 for residential).
 - SURPRISES: Budget 10% contingency — opening walls often reveals unexpected conditions (rot, outdated wiring, plumbing issues).`,
   replacement: `PROJECT CATEGORY: REPLACEMENT — Removing existing system and installing new. Key considerations:
 - REMOVAL & DISPOSAL of existing materials (include dumpster/haul-off).
@@ -105,7 +106,7 @@ const CATEGORY_CONTEXT: Record<ProjectCategory, string> = {
 - DIAGNOSIS: Include time to assess and diagnose the problem.
 - TARGETED WORK: Only repair what's needed, but include related items that will be disturbed.
 - MATCHING: Must match existing materials, finishes, and quality. Matching can be harder and more expensive than full replacement.
-- MINIMUM CHARGES: Most trades have a minimum service call / trip charge ($150-300).`,
+- MINIMUM CHARGES: Most trades have a minimum service call / trip charge ($200-500).`,
 }
 
 /**
@@ -126,7 +127,7 @@ const PROJECT_GUIDANCE: Record<string, string> = {
   basement_finish:
     "Address moisture first — include vapor barrier or dimple mat. Egress window required for bedrooms (code). Include sump pump if none exists. Ceiling options: drywall (cleaner) vs drop ceiling (access to mechanicals). Include bathroom rough-in if applicable. Radon mitigation if applicable.",
   new_construction:
-    "Full scope from site work through CO. WATER SUPPLY: drilled well ($5K-15K) or dug well ($3K-8K) or municipal water connection ($2K-8K) — include based on scope selection. SEWER: septic system with tank + leach field ($10K-25K, includes perc test & design) or municipal sewer connection ($3K-10K). POWER: electrical service drop/underground from utility ($2K-5K). Include survey, clearing/stumping, excavation, foundation, backfill/grading, framing, roofing, windows, doors, siding, all MEP rough + finish, insulation, drywall, flooring, cabinets, counters, paint, trim, fixtures, appliances. DRIVEWAY: paved (asphalt $4-10/SF, concrete $8-15/SF) or gravel ($3-8/SF) — include base prep, grading, culvert if needed. Landscaping: final grade, topsoil, seed/sod, plantings. Don't forget: building permit, well permit, septic permit, electrical permit, driveway permit.",
+    "TURNKEY NEW CONSTRUCTION costs $250-350/SF minimum for standard quality living space. Full scope from site work through CO. WATER SUPPLY: drilled well ($8K-20K) or dug well ($5K-12K) or municipal water connection ($3K-10K). SEWER: septic system with tank + leach field ($15K-30K, includes perc test & design) or municipal sewer connection ($5K-12K). POWER: electrical service drop/underground from utility ($3K-7K). Include survey ($2K-5K), clearing/stumping, excavation, foundation (full basement adds $25-40/SF of footprint), backfill/grading, framing ($15-25/SF), roofing ($600-900/SQ architectural), windows ($900-1400/EA mid-range), doors ($800-2500/EA exterior), siding ($10-18/SF Hardie), all MEP rough + finish, insulation (spray foam $2-4/SF, fiberglass $1.50-2.50/SF), drywall ($3-5/SF installed), flooring ($6-14/SF), cabinets ($200-500/LF mid-range), counters ($50-100/SF quartz), paint ($2-4/SF), trim, fixtures, appliances. GARAGE: Add $75/SF for attached garage (slab, framing, siding, roofing, electrical, door, opener, apron) — 2-car (576 SF) = $40K-50K. DRIVEWAY: paved (asphalt $6-12/SF, concrete $10-18/SF) or gravel ($5-10/SF). Landscaping: final grade, topsoil, seed/sod, plantings ($5K-15K). Permits: 2-4% of project cost.",
   commercial_ti:
     "Includes demo of existing, new framing/layout, all MEP to suit, fire protection/sprinkler mods, ceiling grid, flooring, ADA compliance (restrooms, clearances, signage). Prevailing wage may apply. Include architect/engineering fees if tenant responsibility. IT/low voltage rough-in.",
   roof_replacement:
@@ -134,7 +135,7 @@ const PROJECT_GUIDANCE: Record<string, string> = {
   window_replacement:
     "Includes removal of existing, prep opening, install new window with shims, insulate gaps (low-expand foam), flash/weatherproof, interior trim/casing, exterior trim/caulk, painting touch-up. Price per window varies by size and type. Include egress compliance check for bedrooms. Storm windows if applicable.",
   siding_replacement:
-    "Remove existing siding, inspect/repair sheathing, install housewrap (Tyvek or equivalent), install new siding, trim, soffit, fascia. Include flashing at all penetrations. Corner boards, window/door trim wrapping. Caulk and paint/finish. Material options: vinyl ($4-8/SF), fiber cement/Hardie ($8-14/SF), wood ($10-18/SF), stone veneer ($25-45/SF).",
+    "Remove existing siding, inspect/repair sheathing, install housewrap (Tyvek or equivalent), install new siding, trim, soffit, fascia. Include flashing at all penetrations. Corner boards, window/door trim wrapping. Caulk and paint/finish. Material options: vinyl ($6-10/SF installed), fiber cement/Hardie ($10-18/SF installed), wood ($14-24/SF installed), stone veneer ($35-60/SF installed).",
   electrical_panel_upgrade:
     "200A standard for modern homes. Includes: disconnect with utility, remove old panel, install new panel and breakers, reconnect all circuits, label, ground rod, bonding. Include utility coordination and meter base if needed. Surge protection whole-house. Inspection required.",
   hvac_replacement:

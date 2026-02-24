@@ -33,55 +33,56 @@ export type QualityLevelKey = (typeof QUALITY_LEVELS)[number]["key"]
 
 /**
  * Cost-per-SF benchmarks by project type and quality level (installed, before markup).
+ * Updated to reflect real-world 2025-2026 construction costs.
  * Used by the description builder to give the AI strong pricing context.
  */
 export const COST_BENCHMARKS: Record<string, Record<string, string>> = {
   kitchen_remodel: {
-    budget: "$75-125/SF",
-    standard: "$125-200/SF",
-    premium: "$200-350/SF",
-    luxury: "$350-600+/SF",
-  },
-  bathroom_remodel: {
     budget: "$100-175/SF",
     standard: "$175-300/SF",
     premium: "$300-500/SF",
     luxury: "$500-800+/SF",
   },
+  bathroom_remodel: {
+    budget: "$150-250/SF",
+    standard: "$250-400/SF",
+    premium: "$400-650/SF",
+    luxury: "$650-1000+/SF",
+  },
   full_home_renovation: {
-    budget: "$50-80/SF",
-    standard: "$80-150/SF",
-    premium: "$150-250/SF",
-    luxury: "$250-500+/SF",
+    budget: "$75-125/SF",
+    standard: "$125-200/SF",
+    premium: "$200-350/SF",
+    luxury: "$350-600+/SF",
   },
   room_addition: {
-    budget: "$100-175/SF",
-    standard: "$175-275/SF",
-    premium: "$275-400/SF",
-    luxury: "$400-600+/SF",
+    budget: "$175-250/SF",
+    standard: "$250-375/SF",
+    premium: "$375-500/SF",
+    luxury: "$500-750+/SF",
   },
   basement_finish: {
-    budget: "$30-50/SF",
-    standard: "$50-85/SF",
-    premium: "$85-150/SF",
-    luxury: "$150-250+/SF",
+    budget: "$50-75/SF",
+    standard: "$75-125/SF",
+    premium: "$125-200/SF",
+    luxury: "$200-350+/SF",
   },
   deck_patio: {
-    budget: "$20-35/SF",
-    standard: "$35-55/SF",
-    premium: "$55-85/SF",
-    luxury: "$85-150+/SF",
+    budget: "$30-50/SF",
+    standard: "$50-80/SF",
+    premium: "$80-125/SF",
+    luxury: "$125-200+/SF",
   },
   new_construction: {
-    budget: "$125-175/SF",
-    standard: "$175-275/SF",
-    premium: "$275-400/SF",
-    luxury: "$400-700+/SF",
+    budget: "$175-250/SF",
+    standard: "$250-350/SF",
+    premium: "$350-500/SF",
+    luxury: "$500-800+/SF",
   },
   commercial_ti: {
-    budget: "$40-70/SF",
-    standard: "$70-130/SF",
-    premium: "$130-225/SF",
-    luxury: "$225-400+/SF",
+    budget: "$60-100/SF",
+    standard: "$100-175/SF",
+    premium: "$175-300/SF",
+    luxury: "$300-500+/SF",
   },
 }

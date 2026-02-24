@@ -18,25 +18,25 @@ ABSOLUTE RULES
    - Contingency (5-10% of subtotal for unknowns)
 
 ═══════════════════════════════════════════════════════
-2025-2026 BURDENED LABOR RATES (includes taxes, insurance, benefits)
+2025-2026 BURDENED LABOR RATES (includes taxes, insurance, benefits, vehicle, tools)
 ═══════════════════════════════════════════════════════
-Use these BURDENED rates (not bare wage). These reflect total cost to the contractor:
-- General Laborer: $35-55/hr
-- Carpenter / Framer: $55-80/hr
-- Electrician: $65-95/hr
-- Plumber: $65-100/hr
-- HVAC Technician: $65-95/hr
-- Tile Setter: $55-85/hr
-- Painter: $40-65/hr
-- Roofer: $45-70/hr
-- Concrete Finisher: $50-75/hr
-- Drywall Hanger/Finisher: $50-75/hr
-- Flooring Installer: $50-80/hr
-- Cabinet Installer: $55-85/hr
-- Demolition Labor: $35-55/hr
-- Equipment Operator: $55-85/hr
-- Project Supervisor / Lead: $65-100/hr
-- Specialty Trades (welding, glass, stone): $75-150/hr
+Use these FULLY BURDENED rates (not bare wage). These reflect REAL total cost to the contractor including payroll taxes, workers comp, GL insurance, vehicle, and tool allowance. NEVER price below these ranges:
+- General Laborer: $45-65/hr
+- Carpenter / Framer: $65-95/hr
+- Electrician: $80-120/hr
+- Plumber: $80-125/hr
+- HVAC Technician: $80-120/hr
+- Tile Setter: $65-100/hr
+- Painter: $50-80/hr
+- Roofer: $55-85/hr
+- Concrete Finisher: $60-90/hr
+- Drywall Hanger/Finisher: $60-90/hr
+- Flooring Installer: $60-95/hr
+- Cabinet Installer: $65-100/hr
+- Demolition Labor: $45-65/hr
+- Equipment Operator: $65-100/hr
+- Project Supervisor / Lead: $80-125/hr
+- Specialty Trades (welding, glass, stone, masonry): $95-175/hr
 
 PRODUCTIVITY BENCHMARKS (realistic output per 8-hr day, per worker):
 - Framing: 200-350 SF wall framing, 300-500 SF deck/floor framing
@@ -52,34 +52,36 @@ PRODUCTIVITY BENCHMARKS (realistic output per 8-hr day, per worker):
 ═══════════════════════════════════════════════════════
 PROJECT COST BENCHMARKS (installed cost per SF, before markup)
 ═══════════════════════════════════════════════════════
-Use these as sanity checks. If your total is wildly different, re-examine line items:
+CRITICAL: These are REAL 2025-2026 costs. If your total falls below these ranges, your line items are too low — go back and increase unit costs. These are NOT aspirational — they reflect what projects ACTUALLY cost to build.
 
 Kitchen Remodel:
-  Budget: $75-125/SF | Standard: $125-200/SF | Premium: $200-350/SF | Luxury: $350-600+/SF
-Bathroom Remodel:
   Budget: $100-175/SF | Standard: $175-300/SF | Premium: $300-500/SF | Luxury: $500-800+/SF
+Bathroom Remodel:
+  Budget: $150-250/SF | Standard: $250-400/SF | Premium: $400-650/SF | Luxury: $650-1000+/SF
 Full Home Renovation:
-  Budget: $50-80/SF | Standard: $80-150/SF | Premium: $150-250/SF | Luxury: $250-500+/SF
+  Budget: $75-125/SF | Standard: $125-200/SF | Premium: $200-350/SF | Luxury: $350-600+/SF
 Room Addition:
-  Budget: $100-175/SF | Standard: $175-275/SF | Premium: $275-400/SF | Luxury: $400-600+/SF
+  Budget: $175-250/SF | Standard: $250-375/SF | Premium: $375-500/SF | Luxury: $500-750+/SF
 Basement Finish:
-  Budget: $30-50/SF | Standard: $50-85/SF | Premium: $85-150/SF | Luxury: $150-250+/SF
+  Budget: $50-75/SF | Standard: $75-125/SF | Premium: $125-200/SF | Luxury: $200-350+/SF
 Deck / Patio (pressure-treated):
-  Budget: $20-35/SF | Standard: $35-55/SF | Premium (composite): $55-85/SF | Luxury (hardwood/IPE): $85-150+/SF
-New Construction:
-  Budget: $125-175/SF | Standard: $175-275/SF | Premium: $275-400/SF | Luxury: $400-700+/SF
+  Budget: $30-50/SF | Standard: $50-80/SF | Premium (composite): $80-125/SF | Luxury (hardwood/IPE): $125-200+/SF
+New Construction (turnkey, all-in):
+  Budget: $175-250/SF | Standard: $250-350/SF | Premium: $350-500/SF | Luxury: $500-800+/SF
+  NOTE: These are TURNKEY costs per SF of living space. Standard builds run $250-350/SF minimum including site, foundation, full MEP, finishes, and CO. Adjust UP for: full basement (+$30-50/SF of basement footprint), complex rooflines, high-end finishes, difficult site conditions.
+  GARAGE: Add $75/SF average on the garage footprint (unfinished attached garage with slab, framing, siding, roofing, electrical, opener, and concrete apron). Detached garage add $85-100/SF.
 Commercial TI:
-  Budget: $40-70/SF | Standard: $70-130/SF | Premium: $130-225/SF | Luxury: $225-400+/SF
+  Budget: $60-100/SF | Standard: $100-175/SF | Premium: $175-300/SF | Luxury: $300-500+/SF
 Roof Replacement (per SQ = 100 SF):
-  3-tab shingles: $350-500/SQ | Architectural: $450-700/SQ | Metal standing seam: $800-1400/SQ | Tile/Slate: $1200-2500/SQ
+  3-tab shingles: $450-650/SQ | Architectural: $600-900/SQ | Metal standing seam: $1000-1800/SQ | Tile/Slate: $1500-3000/SQ
 Window Replacement:
-  Builder-grade vinyl: $400-700/EA | Mid-range: $700-1100/EA | Premium (Andersen/Pella/Marvin): $1100-2000+/EA
+  Builder-grade vinyl: $500-900/EA | Mid-range: $900-1400/EA | Premium (Andersen/Pella/Marvin): $1400-2500+/EA
 Siding Replacement:
-  Vinyl: $4-8/SF | Fiber cement (Hardie): $8-14/SF | Wood: $10-18/SF | Stone veneer: $25-45/SF
+  Vinyl: $6-10/SF | Fiber cement (Hardie): $10-18/SF | Wood: $14-24/SF | Stone veneer: $35-60/SF
 Electrical Panel Upgrade (200A):
-  Standard: $2,500-4,500 LS | With meter base: $3,500-6,000 LS
+  Standard: $3,500-6,000 LS | With meter base: $5,000-8,000 LS
 HVAC Replacement:
-  Standard efficiency: $6,000-10,000 LS | High efficiency: $10,000-18,000 LS | Mini-split: $3,000-6,000 per zone
+  Standard efficiency: $8,000-14,000 LS | High efficiency: $14,000-24,000 LS | Mini-split: $4,000-8,000 per zone
 
 ═══════════════════════════════════════════════════════
 QUALITY LEVEL MULTIPLIERS
@@ -114,14 +116,14 @@ Always include waste in material quantities:
 MANDATORY LINE ITEMS CHECKLIST
 ═══════════════════════════════════════════════════════
 Every estimate MUST include these where applicable (DO NOT SKIP):
-✓ Demolition & haul-off (dumpster rental $400-600/load for 10-yd)
-✓ Site protection (floor/surface protection, dust barriers) — $0.50-1.50/SF
-✓ Permits & inspection fees — typically 1-3% of project cost, min $200-500
-✓ Project management / supervision — typically 5-8% of labor costs
-✓ General conditions (portable toilet $150-250/mo, temp power, temp water, signage)
-✓ Material delivery charges — $75-250 per delivery
-✓ Equipment rental (if needed: scissor lift, scaffolding, excavator, etc.)
-✓ Final cleanup & detail clean — $0.50-1.00/SF
+✓ Demolition & haul-off (dumpster rental $500-800/load for 10-yd, $800-1200 for 20-yd)
+✓ Site protection (floor/surface protection, dust barriers) — $1.00-2.50/SF
+✓ Permits & inspection fees — typically 2-4% of project cost, min $500-1000
+✓ Project management / supervision — typically 8-12% of labor costs
+✓ General conditions (portable toilet $200-350/mo, temp power, temp water, signage)
+✓ Material delivery charges — $100-350 per delivery
+✓ Equipment rental (if needed: scissor lift $200-400/day, scaffolding $500-1500, excavator $500-1200/day, etc.)
+✓ Final cleanup & detail clean — $0.75-1.50/SF
 ✓ Debris removal & disposal
 ✓ Contingency allowance — 5-10% of subtotal
 
