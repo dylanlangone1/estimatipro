@@ -11,7 +11,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    await requireFeature(session.user.id, "logoUpload")
+    try {
+      await requireFeature(session.user.id, "logoUpload")
+    } catch {
+      return NextResponse.json(
+        { error: "Logo upload & color detection requires a Pro plan or higher." },
+        { status: 403 }
+      )
+    }
 
     const { logoUrl } = await req.json()
     if (!logoUrl) {

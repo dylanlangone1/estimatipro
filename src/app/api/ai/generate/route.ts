@@ -9,12 +9,22 @@ import { validateEstimateCoherence } from "@/lib/ai/coherence-engine"
 import { checkLimit } from "@/lib/tiers"
 import { getBrandContext } from "@/lib/ai/brand-extraction-engine"
 import { buildDescriptionFromGuided, buildDescriptionFromManual } from "@/lib/ai/description-builder"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(req: Request) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Rate limit: 10 estimates per minute per user
+    const { allowed } = rateLimit(`generate:${session.user.id}`, 10, 60_000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment and try again." },
+        { status: 429 }
+      )
     }
 
     // Verify user still exists (handles stale JWT sessions after account reset)

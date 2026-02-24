@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Sidebar } from "@/components/layout/sidebar"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 export default async function DashboardLayout({
   children,
@@ -31,7 +32,9 @@ export default async function DashboardLayout({
       <main className="lg:pl-64 flex-1">
         <div className="px-4 sm:px-6 lg:px-8 py-6 pt-16 lg:pt-6">
           <PWAInstallPrompt />
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </div>
       </main>
       <footer className="lg:pl-64 border-t border-border/40 py-4 px-4 sm:px-6 lg:px-8">

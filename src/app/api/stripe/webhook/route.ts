@@ -115,8 +115,16 @@ export async function POST(req: Request) {
       }
     }
   } catch (error) {
-    console.error("Webhook processing error:", error)
-    // Still return 200 to prevent Stripe from retrying
+    // Log the full error so failed tier updates are visible in Vercel logs
+    console.error(
+      `[STRIPE WEBHOOK CRITICAL] Event ${event.type} (${event.id}) failed:`,
+      error instanceof Error ? error.message : error
+    )
+    // Return 500 so Stripe retries — better than silently losing a tier update
+    return NextResponse.json(
+      { error: "Webhook processing failed" },
+      { status: 500 }
+    )
   }
 
   return new Response(null, { status: 200 })

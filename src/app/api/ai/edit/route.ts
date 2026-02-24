@@ -6,12 +6,22 @@ import { editEstimateInputSchema } from "@/lib/validations"
 import { loadTrainingContext } from "@/lib/ai/training-context-loader"
 import { buildEnhancedSystemPrompt, EDIT_SYSTEM_PROMPT } from "@/lib/ai/prompts"
 import { analyzeCorrectionAndLearn } from "@/lib/ai/correction-learning-engine"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(req: Request) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Rate limit: 20 edits per minute per user
+    const { allowed } = rateLimit(`edit:${session.user.id}`, 20, 60_000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment and try again." },
+        { status: 429 }
+      )
     }
 
     const body = await req.json()
