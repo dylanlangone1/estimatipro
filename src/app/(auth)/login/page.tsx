@@ -1,38 +1,81 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { signIn } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 
-export default function LoginPage() {
+const errorMessages: Record<string, string> = {
+  CredentialsSignin: "Invalid email or sign-in failed. Please try again.",
+  OAuthSignin: "Could not start Google sign-in. Please try again.",
+  OAuthCallback: "Google sign-in failed. Please try again.",
+  OAuthAccountNotLinked: "This email is already linked to a different sign-in method.",
+  Default: "Something went wrong. Please try again.",
+  Callback: "Sign-in callback error. Please try again.",
+  AccessDenied: "Access denied. Please try again.",
+  Configuration: "Server configuration error. Please contact support.",
+}
+
+function LoginForm() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
   const [loading, setLoading] = useState(false)
   const [demoLoading, setDemoLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error")
+    if (errorParam) {
+      setError(errorMessages[errorParam] || errorMessages.Default)
+    }
+  }, [searchParams])
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) return
     setLoading(true)
-    await signIn("credentials", {
-      email,
-      name: name || email.split("@")[0],
-      callbackUrl: "/dashboard",
-    })
-    setLoading(false)
+    setError(null)
+    try {
+      const result = await signIn("credentials", {
+        email,
+        name: name || email.split("@")[0],
+        redirect: false,
+      })
+      if (result?.error) {
+        setError(errorMessages[result.error] || errorMessages.Default)
+        setLoading(false)
+      } else if (result?.ok) {
+        window.location.href = "/dashboard"
+      }
+    } catch {
+      setError("Network error. Please try again.")
+      setLoading(false)
+    }
   }
 
   const handleDemoLogin = async () => {
     setDemoLoading(true)
-    await signIn("credentials", {
-      email: "demo@estimaipro.com",
-      name: "Demo Contractor",
-      callbackUrl: "/dashboard",
-    })
-    setDemoLoading(false)
+    setError(null)
+    try {
+      const result = await signIn("credentials", {
+        email: "demo@estimaipro.com",
+        name: "Demo Contractor",
+        redirect: false,
+      })
+      if (result?.error) {
+        setError(errorMessages[result.error] || errorMessages.Default)
+        setDemoLoading(false)
+      } else if (result?.ok) {
+        window.location.href = "/dashboard"
+      }
+    } catch {
+      setError("Network error. Please try again.")
+      setDemoLoading(false)
+    }
   }
 
   return (
@@ -50,6 +93,13 @@ export default function LoginPage() {
               Your Pricing Brain. Powered by AI.
             </p>
           </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
+              {error}
+            </div>
+          )}
 
           {/* Google sign in */}
           <Button
@@ -146,5 +196,13 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }
