@@ -15,7 +15,7 @@ export async function PATCH(
     const { id } = await params
     const { markupPercent } = await req.json()
 
-    if (typeof markupPercent !== "number" || markupPercent < 0 || markupPercent > 100) {
+    if (typeof markupPercent !== "number" || isNaN(markupPercent) || markupPercent < 0 || markupPercent > 100) {
       return NextResponse.json({ error: "Invalid markup percentage" }, { status: 400 })
     }
 

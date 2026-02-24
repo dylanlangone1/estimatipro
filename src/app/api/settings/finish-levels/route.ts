@@ -80,11 +80,28 @@ export async function PUT(req: Request) {
     }
 
     const { levels } = await req.json()
-    if (!Array.isArray(levels) || levels.length === 0) {
+    if (!Array.isArray(levels) || levels.length === 0 || levels.length > 10) {
       return NextResponse.json(
-        { error: "At least one finish level is required" },
+        { error: "Between 1 and 10 finish levels are required" },
         { status: 400 }
       )
+    }
+
+    // Validate each level has required fields with correct types
+    for (const level of levels) {
+      if (
+        !level ||
+        typeof level.name !== "string" || level.name.trim().length === 0 ||
+        typeof level.description !== "string" ||
+        !Array.isArray(level.materialExamples) ||
+        typeof level.priceMultiplier !== "number" || isNaN(level.priceMultiplier) ||
+        level.priceMultiplier <= 0 || level.priceMultiplier > 10
+      ) {
+        return NextResponse.json(
+          { error: "Each level must have a name, description, materialExamples array, and valid priceMultiplier (0-10)" },
+          { status: 400 }
+        )
+      }
     }
 
     await prisma.user.update({

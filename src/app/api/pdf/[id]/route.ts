@@ -239,9 +239,12 @@ export async function GET(
           }
 
       // Get or generate proposal data
+      // proposalData may exist but only contain categoryNarratives (from client estimate tab)
+      // — we need full proposal fields (scopeOfWork, aboutUs, etc.) for ProposalPDF
       let proposalData = estimate.proposalData as unknown as ProposalData | null
+      const hasFullProposal = proposalData && "scopeOfWork" in proposalData && "aboutUs" in proposalData
 
-      if (!proposalData) {
+      if (!hasFullProposal) {
         const { anthropic, AI_MODEL } = await import("@/lib/anthropic")
 
         const categories: Record<string, Array<{ description: string; totalCost: number }>> = {}
@@ -284,7 +287,9 @@ Return ONLY a JSON object:
         const jsonMatch = text.match(/\{[\s\S]*\}/)
         if (!jsonMatch) throw new Error("Could not parse proposal")
 
-        proposalData = { ...JSON.parse(jsonMatch[0]), generatedAt: new Date().toISOString() }
+        // Merge with existing data to preserve categoryNarratives if present
+        const existingData = (estimate.proposalData as unknown as Record<string, unknown>) || {}
+        proposalData = { ...existingData, ...JSON.parse(jsonMatch[0]), generatedAt: new Date().toISOString() } as unknown as ProposalData
 
         await prisma.estimate.update({
           where: { id: estimate.id },

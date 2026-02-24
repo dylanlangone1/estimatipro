@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
@@ -68,7 +68,7 @@ export function ClientEstimateView({
   const [editText, setEditText] = useState("")
 
   // Group line items by category with totals
-  const categoryData = useCallback(() => {
+  const categories = useMemo(() => {
     const groups: Record<string, { items: LineItem[]; rawTotal: number }> = {}
     for (const item of lineItems) {
       if (!groups[item.category]) groups[item.category] = { items: [], rawTotal: 0 }
@@ -112,9 +112,10 @@ export function ClientEstimateView({
   }, [estimateId])
 
   async function handleSaveNarrative(category: string) {
-    const updated = narratives.map((n) =>
-      n.category === category ? { ...n, narrative: editText } : n
-    )
+    // Upsert — update existing or add new narrative entry
+    const updated = narratives.some((n) => n.category === category)
+      ? narratives.map((n) => n.category === category ? { ...n, narrative: editText } : n)
+      : [...narratives, { category, narrative: editText }]
     setNarratives(updated)
     setEditingCategory(null)
 
@@ -132,8 +133,6 @@ export function ClientEstimateView({
   function handleExportPDF() {
     window.open(`/api/pdf/${estimateId}?type=client`, "_blank")
   }
-
-  const categories = categoryData()
 
   if (isLoading) {
     return (

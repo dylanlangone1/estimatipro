@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useCallback } from "react"
+import { useRef, useCallback, useEffect } from "react"
 import { Slider } from "@/components/ui/slider"
 import { formatCurrency } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
@@ -22,6 +22,13 @@ export function MarkupSlider({
   onMarkupChange,
 }: MarkupSliderProps) {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Clear debounce timer on unmount to prevent stale requests
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [])
 
   const handleChange = useCallback(
     (newPercent: number) => {
