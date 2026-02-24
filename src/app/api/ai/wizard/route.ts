@@ -5,6 +5,9 @@ import { requireFeature } from "@/lib/tiers"
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { rateLimit } from "@/lib/rate-limit"
 
+// AI wizard responses can take 15–30 s
+export const maxDuration = 60
+
 export async function POST(req: Request) {
   try {
     const session = await auth()

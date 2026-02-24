@@ -1,6 +1,7 @@
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { ESTIMATE_SYSTEM_PROMPT, buildEstimateUserPrompt } from "./prompts"
 import { estimateResponseSchema } from "@/lib/validations"
+import { extractJson } from "./json-utils"
 import type { AIEstimateResponse } from "@/types/estimate"
 
 export async function generateEstimate(
@@ -35,14 +36,31 @@ export async function generateEstimate(
     throw new Error("No text response from AI")
   }
 
-  // Clean the response - sometimes the AI wraps in code fences
-  let jsonText = textBlock.text.trim()
-  if (jsonText.startsWith("```")) {
-    jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "")
+  const rawText = textBlock.text
+  const jsonText = extractJson(rawText)
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonText)
+  } catch (parseErr) {
+    // Log truncated raw response for debugging — never log the full system prompt
+    const preview = rawText.slice(0, 500)
+    console.error("[estimate-generator] JSON.parse failed. Raw response preview:", preview)
+    throw new Error(
+      `AI returned invalid JSON. Parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`
+    )
   }
 
-  const parsed = JSON.parse(jsonText)
-  const validated = estimateResponseSchema.parse(parsed)
+  let validated: AIEstimateResponse
+  try {
+    validated = estimateResponseSchema.parse(parsed) as AIEstimateResponse
+  } catch (zodErr) {
+    // Surface Zod validation errors clearly
+    console.error("[estimate-generator] Zod validation failed:", zodErr)
+    throw new Error(
+      `AI response failed validation: ${zodErr instanceof Error ? zodErr.message : String(zodErr)}`
+    )
+  }
 
-  return validated as AIEstimateResponse
+  return validated
 }

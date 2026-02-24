@@ -2,6 +2,7 @@ import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { EDIT_SYSTEM_PROMPT, buildEditUserPrompt } from "./prompts"
 import { editResponseSchema } from "@/lib/validations"
 import type { EditResponse } from "@/types/estimate"
+import { extractJson } from "./json-utils"
 
 export async function editEstimate(
   currentEstimate: Record<string, unknown>,
@@ -32,13 +33,29 @@ export async function editEstimate(
     throw new Error("No text response from AI")
   }
 
-  let jsonText = textBlock.text.trim()
-  if (jsonText.startsWith("```")) {
-    jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "")
+  const rawText = textBlock.text
+  const jsonText = extractJson(rawText)
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonText)
+  } catch (parseErr) {
+    const preview = rawText.slice(0, 500)
+    console.error("[estimate-editor] JSON.parse failed. Raw response preview:", preview)
+    throw new Error(
+      `AI returned invalid JSON. Parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`
+    )
   }
 
-  const parsed = JSON.parse(jsonText)
-  const validated = editResponseSchema.parse(parsed)
+  let validated: EditResponse
+  try {
+    validated = editResponseSchema.parse(parsed) as EditResponse
+  } catch (zodErr) {
+    console.error("[estimate-editor] Zod validation failed:", zodErr)
+    throw new Error(
+      `AI response failed validation: ${zodErr instanceof Error ? zodErr.message : String(zodErr)}`
+    )
+  }
 
-  return validated as EditResponse
+  return validated
 }

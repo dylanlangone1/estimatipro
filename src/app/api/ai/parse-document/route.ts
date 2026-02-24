@@ -9,6 +9,9 @@ import { updateMaterialLibrary } from "@/lib/ai/material-library-engine"
 import { extractAndSaveBrands } from "@/lib/ai/brand-extraction-engine"
 import { recalculatePricingDNA } from "@/lib/ai/pricing-dna-engine"
 
+// Document parsing + multi-step AI pipeline can take 30–60 s
+export const maxDuration = 60
+
 export async function POST(req: Request) {
   try {
     const session = await auth()

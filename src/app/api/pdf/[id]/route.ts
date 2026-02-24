@@ -14,6 +14,9 @@ import type { TemplateConfig, ProposalData, CategoryNarrative, TermsSection } fr
 // Register Inter font for all PDF rendering
 import "@/lib/pdf-fonts"
 
+// PDF rendering + optional AI proposal generation can take 20–45 s — raise timeout
+export const maxDuration = 60
+
 /**
  * Strip AI prompt-engineering text injected during generation
  * (PROJECT LOCATION / PERMIT NOTE blocks) from stored descriptions
