@@ -17,6 +17,7 @@ export default async function SubscriptionPage() {
       tier: true,
       stripeCurrentPeriodEnd: true,
       stripeSubscriptionId: true,
+      subscriptionStatus: true,
     },
   })
 
@@ -24,6 +25,11 @@ export default async function SubscriptionPage() {
 
   const tierInfo = TIER_FEATURES[user.tier]
   const isFreeTier = user.tier === "FREE"
+  const isTrialing = user.subscriptionStatus === "trialing"
+
+  const trialDaysLeft = isTrialing && user.stripeCurrentPeriodEnd
+    ? Math.max(0, Math.ceil((new Date(user.stripeCurrentPeriodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null
 
   return (
     <div className="space-y-6">
@@ -42,13 +48,29 @@ export default async function SubscriptionPage() {
                 <Badge variant={isFreeTier ? "default" : "success"}>
                   {tierInfo.name}
                 </Badge>
+                {isTrialing && (
+                  <Badge variant="warning">
+                    Trial — {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left
+                  </Badge>
+                )}
                 {!isFreeTier && (
                   <span className="text-lg font-bold text-foreground">
                     ${tierInfo.price}/mo
                   </span>
                 )}
               </div>
-              {user.stripeCurrentPeriodEnd && (
+              {isTrialing && user.stripeCurrentPeriodEnd && (
+                <p className="text-sm text-muted">
+                  Trial ends{" "}
+                  {new Date(user.stripeCurrentPeriodEnd).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}{" "}
+                  — your card will be charged ${tierInfo.price} automatically
+                </p>
+              )}
+              {!isTrialing && user.stripeCurrentPeriodEnd && (
                 <p className="text-sm text-muted">
                   Next billing date:{" "}
                   {new Date(user.stripeCurrentPeriodEnd).toLocaleDateString("en-US", {
@@ -60,7 +82,7 @@ export default async function SubscriptionPage() {
               )}
               {isFreeTier && (
                 <p className="text-sm text-muted">
-                  Free trial — upgrade for unlimited estimates and premium features
+                  Start a 7-day free trial — upgrade for unlimited estimates and premium features
                 </p>
               )}
             </div>
@@ -68,7 +90,7 @@ export default async function SubscriptionPage() {
               <Link href="/pricing">
                 <Button>
                   <ArrowUpCircle className="h-4 w-4 mr-1.5" />
-                  Upgrade
+                  Start Free Trial
                 </Button>
               </Link>
             ) : (

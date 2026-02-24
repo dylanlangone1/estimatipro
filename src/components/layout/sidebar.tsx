@@ -18,6 +18,7 @@ import {
   Lock,
   Palette,
   ArrowUpCircle,
+  BarChart2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -56,19 +57,21 @@ const TIER_BADGE_STYLES: Record<TierName, string> = {
 
 interface SidebarProps {
   userTier?: SubscriptionTier
+  userEmail?: string
 }
 
-export function Sidebar({ userTier = "FREE" }: SidebarProps) {
+export function Sidebar({ userTier = "FREE", userEmail = "" }: SidebarProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const tierInfo = TIER_FEATURES[userTier as TierName] || TIER_FEATURES.FREE
   const nextTier = TIER_ORDER[TIER_ORDER.indexOf(userTier as TierName) + 1] as TierName | undefined
   const showUpgradeCTA = userTier !== "MAX"
+  const isAdmin = !!process.env.NEXT_PUBLIC_ADMIN_EMAIL && userEmail === process.env.NEXT_PUBLIC_ADMIN_EMAIL
 
   return (
     <>
-      {/* Mobile hamburger — fixed: bg-white → bg-card */}
+      {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-card shadow-md border border-card-border"
@@ -167,6 +170,23 @@ export function Sidebar({ userTier = "FREE" }: SidebarProps) {
               </Link>
             )
           })}
+
+          {/* Admin link — only visible to admin email */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                pathname === "/admin"
+                  ? "bg-brand-orange text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
+              )}
+            >
+              <BarChart2 className="h-5 w-5 shrink-0" />
+              Admin
+            </Link>
+          )}
         </nav>
 
         {/* Upgrade CTA */}

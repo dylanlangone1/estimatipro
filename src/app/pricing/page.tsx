@@ -79,7 +79,7 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-white/50 max-w-xl mx-auto">
-            Every plan includes a 14-day free trial. No credit card required. Cancel anytime.
+            Every plan includes a 7-day free trial. Card required — cancel anytime before trial ends.
           </p>
         </div>
 

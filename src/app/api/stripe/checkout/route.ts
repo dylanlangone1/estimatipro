@@ -45,11 +45,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
-    // Create checkout session
+    // Create checkout session with 7-day trial (card collected upfront)
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
+      payment_method_collection: "always",
+      subscription_data: { trial_period_days: 7 },
       success_url: `${appUrl}/dashboard?checkout=success`,
       cancel_url: `${appUrl}/pricing?checkout=cancelled`,
       metadata: { userId: session.user.id },

@@ -48,6 +48,7 @@ export async function POST(req: Request) {
               tier,
               stripeSubscriptionId: subscriptionId,
               stripePriceId: priceId,
+              subscriptionStatus: subscription.status,
               stripeCurrentPeriodEnd: item?.current_period_end
                 ? new Date(item.current_period_end * 1000)
                 : null,
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
           await prisma.user.update({
             where: { stripeSubscriptionId: subscriptionId },
             data: {
+              subscriptionStatus: subscription.status,
               stripeCurrentPeriodEnd: item?.current_period_end
                 ? new Date(item.current_period_end * 1000)
                 : null,
@@ -91,6 +93,7 @@ export async function POST(req: Request) {
           data: {
             tier,
             stripePriceId: priceId,
+            subscriptionStatus: subscription.status,
             stripeCurrentPeriodEnd: item?.current_period_end
               ? new Date(item.current_period_end * 1000)
               : null,
@@ -109,18 +112,17 @@ export async function POST(req: Request) {
             stripeSubscriptionId: null,
             stripePriceId: null,
             stripeCurrentPeriodEnd: null,
+            subscriptionStatus: "canceled",
           },
         })
         break
       }
     }
   } catch (error) {
-    // Log the full error so failed tier updates are visible in Vercel logs
     console.error(
       `[STRIPE WEBHOOK CRITICAL] Event ${event.type} (${event.id}) failed:`,
       error instanceof Error ? error.message : error
     )
-    // Return 500 so Stripe retries — better than silently losing a tier update
     return NextResponse.json(
       { error: "Webhook processing failed" },
       { status: 500 }
