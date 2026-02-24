@@ -29,21 +29,31 @@ if (localFontsAvailable) {
   Font.register({
     family: "Inter",
     fonts: [
-      { src: path.join(FONT_DIR, "Inter-Regular.ttf"), fontWeight: 400 },
-      { src: path.join(FONT_DIR, "Inter-Medium.ttf"), fontWeight: 500 },
+      { src: path.join(FONT_DIR, "Inter-Regular.ttf"),  fontWeight: 400 },
+      { src: path.join(FONT_DIR, "Inter-Regular.ttf"),  fontWeight: 400, fontStyle: "italic" },
+      { src: path.join(FONT_DIR, "Inter-Medium.ttf"),   fontWeight: 500 },
+      { src: path.join(FONT_DIR, "Inter-Medium.ttf"),   fontWeight: 500, fontStyle: "italic" },
       { src: path.join(FONT_DIR, "Inter-SemiBold.ttf"), fontWeight: 600 },
-      { src: path.join(FONT_DIR, "Inter-Bold.ttf"), fontWeight: 700 },
+      { src: path.join(FONT_DIR, "Inter-SemiBold.ttf"), fontWeight: 600, fontStyle: "italic" },
+      { src: path.join(FONT_DIR, "Inter-Bold.ttf"),     fontWeight: 700 },
+      { src: path.join(FONT_DIR, "Inter-Bold.ttf"),     fontWeight: 700, fontStyle: "italic" },
     ],
   })
 } else {
-  // Fallback: Bunny Fonts CDN — semantic URLs that don't break on font version updates
+  // Fallback: Bunny Fonts CDN — semantic URLs that don't break on font version updates.
+  // Each weight is registered twice (normal + italic) so that any italic text in PDFs
+  // falls back to the normal variant rather than crashing with "could not resolve font".
   Font.register({
     family: "Inter",
     fonts: [
       { src: "https://fonts.bunny.net/inter/files/inter-latin-400-normal.ttf", fontWeight: 400 },
+      { src: "https://fonts.bunny.net/inter/files/inter-latin-400-normal.ttf", fontWeight: 400, fontStyle: "italic" },
       { src: "https://fonts.bunny.net/inter/files/inter-latin-500-normal.ttf", fontWeight: 500 },
+      { src: "https://fonts.bunny.net/inter/files/inter-latin-500-normal.ttf", fontWeight: 500, fontStyle: "italic" },
       { src: "https://fonts.bunny.net/inter/files/inter-latin-600-normal.ttf", fontWeight: 600 },
+      { src: "https://fonts.bunny.net/inter/files/inter-latin-600-normal.ttf", fontWeight: 600, fontStyle: "italic" },
       { src: "https://fonts.bunny.net/inter/files/inter-latin-700-normal.ttf", fontWeight: 700 },
+      { src: "https://fonts.bunny.net/inter/files/inter-latin-700-normal.ttf", fontWeight: 700, fontStyle: "italic" },
     ],
   })
 }
