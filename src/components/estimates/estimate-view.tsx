@@ -127,6 +127,8 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
   const [markupAmount, setMarkupAmount] = useState(estimate.markupAmount)
   const [totalAmount, setTotalAmount] = useState(estimate.totalAmount)
 
+  const lineItems = estimate.lineItems || []
+  const editHistory = estimate.editHistory || []
   const alerts = (estimate.deviationAlerts as DeviationAlert[] | null) ?? []
   const assumptions = (estimate.assumptions as string[] | null) ?? []
 
@@ -161,8 +163,8 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
   }
 
   // Animation delay for totals
-  const totalAnimationItems = estimate.lineItems.length + Object.keys(
-    estimate.lineItems.reduce((acc, item) => {
+  const totalAnimationItems = lineItems.length + Object.keys(
+    lineItems.reduce((acc, item) => {
       acc[item.category] = true
       return acc
     }, {} as Record<string, boolean>)
@@ -436,13 +438,13 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-foreground">Line Items</h2>
               <span className="text-sm text-muted">
-                {estimate.lineItems.length} items
+                {lineItems.length} items
               </span>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <LineItemTable
-              lineItems={estimate.lineItems}
+              lineItems={lineItems}
               showLabor={true}
               isNew={isNew}
               editable={true}
@@ -456,8 +458,8 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
           <CardContent className="py-4">
             <div className="space-y-2 max-w-sm ml-auto">
               {(() => {
-                const totalLabor = estimate.lineItems.reduce((sum, item) => sum + (item.laborCost || 0), 0)
-                const totalMaterial = estimate.lineItems.reduce((sum, item) => sum + (item.materialCost || 0), 0)
+                const totalLabor = lineItems.reduce((sum, item) => sum + (item.laborCost || 0), 0)
+                const totalMaterial = lineItems.reduce((sum, item) => sum + (item.materialCost || 0), 0)
                 if (totalLabor > 0 || totalMaterial > 0) {
                   return (
                     <>
@@ -547,7 +549,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
         </Card>
 
         {/* Edit History */}
-        {estimate.editHistory.length > 0 && (
+        {editHistory.length > 0 && (
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -557,7 +559,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
             </CardHeader>
             <CardContent>
               <ul className="space-y-3">
-                {estimate.editHistory.map((edit) => (
+                {editHistory.map((edit) => (
                   <li
                     key={edit.id}
                     className="flex items-start gap-3 text-sm"
@@ -586,7 +588,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
           projectType={estimate.projectType}
           createdAt={estimate.createdAt}
           clientName={estimate.client?.name ?? null}
-          lineItems={estimate.lineItems}
+          lineItems={lineItems}
           subtotal={estimate.subtotal}
           taxAmount={estimate.taxAmount}
           markupPercent={markupPercent}

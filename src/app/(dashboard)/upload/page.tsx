@@ -32,23 +32,29 @@ export default function UploadPage() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set())
 
+  const hasProcessing = documents.some((d) => d.parseStatus === "PROCESSING")
+
   useEffect(() => {
     fetchDocuments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Poll for updates when documents are processing
+  // Poll for updates when documents are processing — uses derived boolean, not the array ref
   useEffect(() => {
-    const hasProcessing = documents.some((d) => d.parseStatus === "PROCESSING")
     if (!hasProcessing) return
     const interval = setInterval(fetchDocuments, 3000)
     return () => clearInterval(interval)
-  }, [documents])
+  }, [hasProcessing])
 
   async function fetchDocuments() {
-    const res = await fetch("/api/uploads")
-    if (res.ok) {
-      const data = await res.json()
-      setDocuments(data)
+    try {
+      const res = await fetch("/api/uploads")
+      if (res.ok) {
+        const data = await res.json()
+        setDocuments(data)
+      }
+    } catch (err) {
+      console.error("Failed to fetch documents:", err)
     }
   }
 

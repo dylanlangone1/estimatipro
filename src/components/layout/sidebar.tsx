@@ -62,7 +62,7 @@ export function Sidebar({ userTier = "FREE" }: SidebarProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const tierInfo = TIER_FEATURES[userTier]
+  const tierInfo = TIER_FEATURES[userTier as TierName] || TIER_FEATURES.FREE
   const nextTier = TIER_ORDER[TIER_ORDER.indexOf(userTier as TierName) + 1] as TierName | undefined
   const showUpgradeCTA = userTier !== "MAX"
 

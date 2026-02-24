@@ -543,7 +543,7 @@ export function ProposalPDF({
         <Text style={s.pageTitle}>Scope of Work</Text>
         <Text style={s.bodyText}>{description}</Text>
 
-        {proposalData.scopeOfWork.map((scope, i) => (
+        {(proposalData.scopeOfWork || []).map((scope, i) => (
           <View key={i} style={s.scopeBlock} wrap={false}>
             <Text style={s.scopeCategory}>{scope.category}</Text>
             <Text style={s.bodyText}>{scope.narrative}</Text>
@@ -642,7 +642,7 @@ export function ProposalPDF({
         <PDFPageHeader logoPath={logoPath} companyName={companyName} pageLabel="Timeline" color={tc.primary} />
         <Text style={s.pageTitle}>Project Timeline</Text>
 
-        {proposalData.timeline.map((phase, i) => (
+        {(proposalData.timeline || []).map((phase, i) => (
           <View key={i} style={s.timelineItem} wrap={false}>
             <View style={s.timelineBar}>
               <View style={s.timelineDot} />

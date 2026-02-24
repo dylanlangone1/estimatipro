@@ -49,66 +49,67 @@ export async function PATCH(
       })
     }
 
-    // Update individual line items
+    // Update individual line items — wrapped in transaction for consistency
     if (Array.isArray(body.lineItems)) {
-      for (const item of body.lineItems) {
-        if (!item.id) continue
+      await prisma.$transaction(async (tx) => {
+        for (const item of body.lineItems) {
+          if (!item.id) continue
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const lineUpdate: Record<string, any> = {}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const lineUpdate: Record<string, any> = {}
 
-        if (typeof item.description === "string") {
-          lineUpdate.description = item.description.trim()
-        }
-        if (typeof item.quantity === "number" && item.quantity >= 0) {
-          lineUpdate.quantity = item.quantity
-        }
-        if (typeof item.unitCost === "number" && item.unitCost >= 0) {
-          lineUpdate.unitCost = item.unitCost
-        }
-        if (typeof item.unit === "string") {
-          lineUpdate.unit = item.unit.trim()
-        }
+          if (typeof item.description === "string") {
+            lineUpdate.description = item.description.trim()
+          }
+          if (typeof item.quantity === "number" && item.quantity >= 0) {
+            lineUpdate.quantity = item.quantity
+          }
+          if (typeof item.unitCost === "number" && item.unitCost >= 0) {
+            lineUpdate.unitCost = item.unitCost
+          }
+          if (typeof item.unit === "string") {
+            lineUpdate.unit = item.unit.trim()
+          }
 
-        // Recalculate totalCost if quantity or unitCost changed
-        if (lineUpdate.quantity !== undefined || lineUpdate.unitCost !== undefined) {
-          // Fetch current item to get existing values
-          const current = await prisma.lineItem.findUnique({
-            where: { id: item.id },
-            select: { quantity: true, unitCost: true, estimateId: true },
-          })
-          if (current && current.estimateId === id) {
-            const qty = lineUpdate.quantity ?? current.quantity
-            const cost = lineUpdate.unitCost ?? current.unitCost
-            lineUpdate.totalCost = qty * cost
+          // Recalculate totalCost if quantity or unitCost changed
+          if (lineUpdate.quantity !== undefined || lineUpdate.unitCost !== undefined) {
+            const current = await tx.lineItem.findUnique({
+              where: { id: item.id },
+              select: { quantity: true, unitCost: true, estimateId: true },
+            })
+            if (current && current.estimateId === id) {
+              const qty = lineUpdate.quantity ?? current.quantity
+              const cost = lineUpdate.unitCost ?? current.unitCost
+              lineUpdate.totalCost = qty * cost
+            }
+          }
+
+          if (Object.keys(lineUpdate).length > 0) {
+            await tx.lineItem.update({
+              where: { id: item.id },
+              data: lineUpdate,
+            })
           }
         }
 
-        if (Object.keys(lineUpdate).length > 0) {
-          await prisma.lineItem.update({
-            where: { id: item.id },
-            data: lineUpdate,
-          })
-        }
-      }
+        // Recalculate estimate totals
+        const allItems = await tx.lineItem.findMany({
+          where: { estimateId: id },
+          select: { totalCost: true },
+        })
 
-      // Recalculate estimate totals
-      const allItems = await prisma.lineItem.findMany({
-        where: { estimateId: id },
-        select: { totalCost: true },
-      })
+        const newSubtotal = allItems.reduce((sum, item) => sum + item.totalCost, 0)
+        const markupAmount = newSubtotal * (estimate.markupPercent / 100)
+        const totalAmount = newSubtotal + markupAmount + estimate.taxAmount
 
-      const newSubtotal = allItems.reduce((sum, item) => sum + item.totalCost, 0)
-      const markupAmount = newSubtotal * (estimate.markupPercent / 100)
-      const totalAmount = newSubtotal + markupAmount + estimate.taxAmount
-
-      await prisma.estimate.update({
-        where: { id },
-        data: {
-          subtotal: newSubtotal,
-          markupAmount,
-          totalAmount,
-        },
+        await tx.estimate.update({
+          where: { id },
+          data: {
+            subtotal: newSubtotal,
+            markupAmount,
+            totalAmount,
+          },
+        })
       })
     }
 
