@@ -5,8 +5,8 @@ import { Check, ArrowLeft } from "lucide-react"
 const plans = [
   {
     name: "Standard",
-    price: 99,
-    annualPrice: 79,
+    price: 49,
+    annualPrice: 39,
     description: "For contractors getting started with AI estimating",
     features: [
       "Unlimited AI estimates",
@@ -20,8 +20,8 @@ const plans = [
   },
   {
     name: "Pro",
-    price: 249,
-    annualPrice: 199,
+    price: 99,
+    annualPrice: 79,
     description: "For growing contractors who want branded output",
     popular: true,
     features: [
@@ -36,8 +36,8 @@ const plans = [
   },
   {
     name: "Max",
-    price: 499,
-    annualPrice: 399,
+    price: 199,
+    annualPrice: 159,
     description: "For established contractors who want it all",
     features: [
       "Everything in Pro",

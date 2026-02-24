@@ -18,8 +18,8 @@ export const TIER_FEATURES = {
   },
   STANDARD: {
     name: "Standard",
-    price: 99,
-    annualPrice: 79,
+    price: 49,
+    annualPrice: 39,
     estimatesPerMonth: Infinity,
     uploadsPerMonth: 50,
     promptToEstimate: true,
@@ -36,8 +36,8 @@ export const TIER_FEATURES = {
   },
   PRO: {
     name: "Pro",
-    price: 249,
-    annualPrice: 199,
+    price: 99,
+    annualPrice: 79,
     estimatesPerMonth: Infinity,
     uploadsPerMonth: Infinity,
     promptToEstimate: true,
@@ -54,8 +54,8 @@ export const TIER_FEATURES = {
   },
   MAX: {
     name: "Max",
-    price: 499,
-    annualPrice: 399,
+    price: 199,
+    annualPrice: 159,
     estimatesPerMonth: Infinity,
     uploadsPerMonth: Infinity,
     promptToEstimate: true,
