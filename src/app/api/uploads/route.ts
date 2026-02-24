@@ -32,7 +32,14 @@ export async function POST(req: Request) {
       )
     }
 
-    const formData = await req.formData()
+    let formData: FormData
+    try {
+      formData = await req.formData()
+    } catch (err) {
+      console.error("FormData parse error:", err)
+      return NextResponse.json({ error: "Failed to parse uploaded file." }, { status: 400 })
+    }
+
     const file = formData.get("file") as File | null
 
     if (!file) {
@@ -54,40 +61,60 @@ export async function POST(req: Request) {
     let fileUrl: string
 
     if (process.env.BLOB_READ_WRITE_TOKEN) {
-      const blob = await put(blobName, file, { access: "public" })
-      fileUrl = blob.url
+      try {
+        const blob = await put(blobName, file, { access: "public" })
+        fileUrl = blob.url
+      } catch (err) {
+        console.error("Blob upload error:", err)
+        const detail = err instanceof Error ? err.message : String(err)
+        return NextResponse.json({ error: `File storage failed: ${detail}` }, { status: 500 })
+      }
     } else {
       // Local dev fallback
-      const fs = await import("fs/promises")
-      const path = await import("path")
-      const uploadsDir = path.join(process.cwd(), "public", "uploads")
-      await fs.mkdir(uploadsDir, { recursive: true })
-      const filePath = path.join(uploadsDir, blobName.replace("uploads/", ""))
-      const buffer = Buffer.from(await file.arrayBuffer())
-      await fs.writeFile(filePath, buffer)
-      fileUrl = `/uploads/${blobName.replace("uploads/", "")}`
+      try {
+        const fs = await import("fs/promises")
+        const path = await import("path")
+        const uploadsDir = path.join(process.cwd(), "public", "uploads")
+        await fs.mkdir(uploadsDir, { recursive: true })
+        const filePath = path.join(uploadsDir, blobName.replace("uploads/", ""))
+        const buffer = Buffer.from(await file.arrayBuffer())
+        await fs.writeFile(filePath, buffer)
+        fileUrl = `/uploads/${blobName.replace("uploads/", "")}`
+      } catch (err) {
+        console.error("Local file write error:", err)
+        return NextResponse.json({ error: "BLOB_READ_WRITE_TOKEN is not configured." }, { status: 500 })
+      }
     }
 
     // Create database record
-    const doc = await prisma.uploadedDocument.create({
-      data: {
-        userId: session.user.id,
-        filename: file.name,
-        fileType: ext,
-        fileUrl,
-        fileSize: file.size,
-        parseStatus: "PENDING",
-      },
-    })
+    let doc: { id: string; filename: string; fileUrl: string }
+    try {
+      doc = await prisma.uploadedDocument.create({
+        data: {
+          userId: session.user.id,
+          filename: file.name,
+          fileType: ext,
+          fileUrl,
+          fileSize: file.size,
+          parseStatus: "PENDING",
+        },
+        select: { id: true, filename: true, fileUrl: true },
+      })
+    } catch (err) {
+      console.error("DB create error:", err)
+      const detail = err instanceof Error ? err.message : String(err)
+      return NextResponse.json({ error: `Database error: ${detail}` }, { status: 500 })
+    }
 
     return NextResponse.json({ id: doc.id, filename: doc.filename, fileUrl: doc.fileUrl })
   } catch (error) {
     console.error("Upload error:", error)
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 })
+    const message = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: `Upload failed: ${message}` }, { status: 500 })
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await auth()
     if (!session?.user?.id) {
