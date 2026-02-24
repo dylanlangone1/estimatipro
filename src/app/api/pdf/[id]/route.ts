@@ -93,10 +93,11 @@ export async function GET(
       .filter(Boolean)
       .join(", ") || undefined
 
-    // Convert logo to base64 data URI for reliable PDF embedding
-    // External URLs (Vercel Blob) can fail due to CORS in @react-pdf/renderer
+    // Use logo as-is if already a data URI (base64), otherwise convert
     const logoPath = user.logoUrl
-      ? await fetchLogoAsBase64(user.logoUrl) ?? undefined
+      ? user.logoUrl.startsWith("data:")
+        ? user.logoUrl
+        : await fetchLogoAsBase64(user.logoUrl) ?? undefined
       : undefined
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

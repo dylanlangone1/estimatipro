@@ -2,17 +2,13 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { requireFeature } from "@/lib/tiers"
-import { put } from "@vercel/blob"
 
 /**
  * POST /api/settings/brand/logo
- * Dedicated logo upload endpoint — separate from document uploads.
- * - Checks logoUpload feature (PRO+), NOT historicalUpload
- * - Does NOT count against monthly upload limits
- * - Does NOT create uploadedDocument records
- * - Accepts image files only (png, jpg, jpeg, webp, svg)
- * - Max 2MB
- * - Saves URL directly to user.logoUrl
+ * Dedicated logo upload endpoint.
+ * Converts image to base64 data URI and stores directly in user.logoUrl.
+ * No Vercel Blob dependency — works regardless of store config.
+ * Base64 also eliminates CORS issues in @react-pdf/renderer.
  */
 export async function POST(req: Request) {
   try {
@@ -55,25 +51,27 @@ export async function POST(req: Request) {
       )
     }
 
-    // Upload to Vercel Blob
-    const blobName = `logos/${session.user.id}-${Date.now()}.${ext}`
-
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return NextResponse.json(
-        { error: "File storage not configured" },
-        { status: 500 }
-      )
+    // Convert to base64 data URI — stored directly in DB
+    // This bypasses Vercel Blob entirely and eliminates CORS issues in PDFs
+    const mimeTypes: Record<string, string> = {
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      webp: "image/webp",
+      svg: "image/svg+xml",
     }
+    const contentType = mimeTypes[ext] || "image/png"
+    const arrayBuffer = await file.arrayBuffer()
+    const base64 = Buffer.from(arrayBuffer).toString("base64")
+    const dataUri = `data:${contentType};base64,${base64}`
 
-    const blob = await put(blobName, file, { access: "public" })
-
-    // Save URL directly to user record
+    // Save base64 data URI directly to user record
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { logoUrl: blob.url },
+      data: { logoUrl: dataUri },
     })
 
-    return NextResponse.json({ logoUrl: blob.url })
+    return NextResponse.json({ logoUrl: dataUri })
   } catch (error) {
     console.error("Logo upload error:", error)
     return NextResponse.json(
