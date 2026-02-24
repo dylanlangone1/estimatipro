@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/toast"
 import { formatCurrency, formatDate } from "@/lib/utils"
+import { LineItemTable } from "@/components/estimates/line-item-table"
 import {
   FileText,
   Pencil,
@@ -13,6 +14,8 @@ import {
   X,
   Download,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import type { CategoryNarrative } from "@/types/proposal"
 import type { JsonValue } from "@prisma/client/runtime/client"
@@ -66,6 +69,7 @@ export function ClientEstimateView({
   const [isLoading, setIsLoading] = useState(true)
   const [editingCategory, setEditingCategory] = useState<string | null>(null)
   const [editText, setEditText] = useState("")
+  const [showLineItems, setShowLineItems] = useState(false)
 
   // Group line items by category with totals
   const categories = useMemo(() => {
@@ -255,6 +259,36 @@ export function ClientEstimateView({
             </div>
           ))}
         </CardContent>
+      </Card>
+
+      {/* Detailed Line Items — Toggle */}
+      <Card>
+        <CardHeader>
+          <button
+            onClick={() => setShowLineItems(!showLineItems)}
+            className="w-full flex items-center justify-between"
+          >
+            <h3 className="font-semibold text-foreground">Detailed Line Items</h3>
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <span>{lineItems.length} items</span>
+              {showLineItems ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </div>
+          </button>
+        </CardHeader>
+        {showLineItems && (
+          <CardContent className="p-0">
+            <LineItemTable
+              lineItems={lineItems}
+              showLabor={false}
+              editable={true}
+              estimateId={estimateId}
+            />
+          </CardContent>
+        )}
       </Card>
 
       {/* Pricing Summary */}

@@ -363,7 +363,7 @@ function EditableLineItemRow({
         <td className="py-2.5 px-2">
           <button
             onClick={enterEdit}
-            className="p-1 text-muted opacity-0 group-hover:opacity-100 hover:text-brand-orange transition-all"
+            className="p-1 text-muted hover:text-brand-orange transition-all"
             title="Edit line item"
           >
             <Pencil className="h-3.5 w-3.5" />
