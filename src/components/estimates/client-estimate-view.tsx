@@ -197,10 +197,10 @@ export function ClientEstimateView({
           {categories.map((cat, i) => (
             <div
               key={cat.category}
-              className={`px-6 py-4 ${i < categories.length - 1 ? "border-b border-card-border" : ""}`}
+              className={`px-4 sm:px-6 py-4 ${i < categories.length - 1 ? "border-b border-card-border" : ""}`}
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-foreground">{cat.category}</h4>
                   {editingCategory === cat.category ? (
                     <div className="mt-2 space-y-2">

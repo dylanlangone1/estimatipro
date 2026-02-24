@@ -22,7 +22,7 @@ export function Card({ className, hoverable, children, ...props }: CardProps) {
 
 export function CardHeader({ className, children, ...props }: CardProps) {
   return (
-    <div className={cn("px-6 py-4 border-b border-card-border", className)} {...props}>
+    <div className={cn("px-4 sm:px-6 py-4 border-b border-card-border", className)} {...props}>
       {children}
     </div>
   )
@@ -30,7 +30,7 @@ export function CardHeader({ className, children, ...props }: CardProps) {
 
 export function CardContent({ className, children, ...props }: CardProps) {
   return (
-    <div className={cn("px-6 py-4", className)} {...props}>
+    <div className={cn("px-4 sm:px-6 py-4", className)} {...props}>
       {children}
     </div>
   )
@@ -38,7 +38,7 @@ export function CardContent({ className, children, ...props }: CardProps) {
 
 export function CardFooter({ className, children, ...props }: CardProps) {
   return (
-    <div className={cn("px-6 py-4 border-t border-card-border", className)} {...props}>
+    <div className={cn("px-4 sm:px-6 py-4 border-t border-card-border", className)} {...props}>
       {children}
     </div>
   )

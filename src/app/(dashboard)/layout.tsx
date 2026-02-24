@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Sidebar } from "@/components/layout/sidebar"
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 
 export default async function DashboardLayout({
   children,
@@ -29,6 +30,7 @@ export default async function DashboardLayout({
       <Sidebar userTier={user?.tier ?? "FREE"} />
       <main className="lg:pl-64">
         <div className="px-4 sm:px-6 lg:px-8 py-6 pt-16 lg:pt-6">
+          <PWAInstallPrompt />
           {children}
         </div>
       </main>

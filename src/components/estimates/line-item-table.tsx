@@ -57,8 +57,8 @@ export function LineItemTable({ lineItems, showLabor = true, isNew = false }: Li
             <th className="py-3 px-2 font-semibold text-foreground text-right w-28">Unit Cost</th>
             {showLabor && (
               <>
-                <th className="py-3 px-2 font-semibold text-foreground text-right w-28">Labor</th>
-                <th className="py-3 px-2 font-semibold text-foreground text-right w-28">Material</th>
+                <th className="py-3 px-2 font-semibold text-foreground text-right w-28 hidden sm:table-cell">Labor</th>
+                <th className="py-3 px-2 font-semibold text-foreground text-right w-28 hidden sm:table-cell">Material</th>
               </>
             )}
             <th className="py-3 px-4 font-semibold text-foreground text-right w-32">Total</th>
@@ -140,10 +140,10 @@ function CategoryGroup({
           </td>
           {showLabor && (
             <>
-              <td className="py-2.5 px-2 text-right text-muted tabular-nums">
+              <td className="py-2.5 px-2 text-right text-muted tabular-nums hidden sm:table-cell">
                 {item.laborCost ? formatCurrency(item.laborCost) : "\u2014"}
               </td>
-              <td className="py-2.5 px-2 text-right text-muted tabular-nums">
+              <td className="py-2.5 px-2 text-right text-muted tabular-nums hidden sm:table-cell">
                 {item.materialCost ? formatCurrency(item.materialCost) : "\u2014"}
               </td>
             </>

@@ -140,8 +140,8 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
       )}
 
       {/* Header — always visible above tabs */}
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="min-w-0">
           <Link
             href="/estimates"
             className="inline-flex items-center text-sm text-muted hover:text-foreground mb-2"
@@ -150,7 +150,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
             Back to Estimates
           </Link>
           <h1 className="text-2xl font-bold text-foreground">{estimate.title}</h1>
-          <div className="flex items-center gap-3 mt-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
             <Badge variant={statusVariant[estimate.status] || "default"}>
               {estimate.status}
             </Badge>
@@ -169,7 +169,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <QuickTeachButton estimateId={estimate.id} />
           <ExportDropdown estimateId={estimate.id} userTier={userTier} />
         </div>

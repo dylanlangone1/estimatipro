@@ -7,6 +7,7 @@
   "orientation": "portrait-primary",
   "background_color": "#1A1A2E",
   "theme_color": "#E94560",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -19,6 +20,29 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Estimate",
+      "short_name": "New",
+      "description": "Create a new AI-powered estimate",
+      "url": "/estimate/new",
+      "icons": []
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Home",
+      "description": "View your dashboard",
+      "url": "/dashboard",
+      "icons": []
+    },
+    {
+      "name": "Upload Invoice",
+      "short_name": "Upload",
+      "description": "Upload a supplier invoice",
+      "url": "/upload",
+      "icons": []
     }
   ],
   "categories": ["business", "productivity"]

@@ -23,7 +23,10 @@ export async function POST(req: Request) {
 
     const estimate = await prisma.estimate.findUnique({
       where: { id: estimateId },
-      include: { lineItems: { orderBy: { sortOrder: "asc" } } },
+      include: {
+        lineItems: { orderBy: { sortOrder: "asc" } },
+        user: { select: { companyName: true, trades: true } },
+      },
     })
 
     if (!estimate || estimate.userId !== session.user.id) {
@@ -36,34 +39,57 @@ export async function POST(req: Request) {
       return NextResponse.json({ categoryNarratives: existing.categoryNarratives })
     }
 
-    // Group line items by category
-    const categories: Record<string, string[]> = {}
+    // Group line items by category with full detail
+    const catGroups: Record<string, typeof estimate.lineItems> = {}
     for (const item of estimate.lineItems) {
-      if (!categories[item.category]) categories[item.category] = []
-      categories[item.category].push(item.description)
+      if (!catGroups[item.category]) catGroups[item.category] = []
+      catGroups[item.category].push(item)
     }
 
-    const categorySummary = Object.entries(categories)
-      .map(([cat, items]) => `${cat}: ${items.join(", ")}`)
-      .join("\n")
+    const categorySummary = Object.entries(catGroups)
+      .map(([cat, items]) => {
+        const catTotal = items.reduce((sum, i) => sum + i.totalCost, 0)
+        const lines = items.map((item) => {
+          let line = `  - ${item.description}: ${item.quantity} ${item.unit} @ $${item.unitCost.toFixed(2)}/${item.unit}`
+          const costParts: string[] = []
+          if (item.laborCost) costParts.push(`Labor: $${item.laborCost.toLocaleString()}`)
+          if (item.materialCost) costParts.push(`Material: $${item.materialCost.toLocaleString()}`)
+          if (costParts.length > 0) line += ` (${costParts.join(" | ")})`
+          return line
+        })
+        return `Category: ${cat} (${items.length} items, $${catTotal.toLocaleString()} total)\n${lines.join("\n")}`
+      })
+      .join("\n\n")
 
-    // Light AI call — just 1-2 sentence narratives per category
+    // Contractor context for more tailored language
+    const contractorContext = [
+      estimate.user.companyName && `Company: ${estimate.user.companyName}`,
+      estimate.user.trades?.length && `Trades: ${estimate.user.trades.join(", ")}`,
+    ].filter(Boolean).join("\n")
+
+    // AI call with rich context for specific, professional narratives
     const response = await anthropic.messages.create({
       model: AI_MODEL,
-      max_tokens: 1024,
+      max_tokens: 1500,
       messages: [
         {
           role: "user",
-          content: `For each construction category below, write a 1-2 sentence professional description suitable for a client-facing estimate. Focus on what will be done, materials, and approach. Do NOT mention prices.
+          content: `You are writing professional scope-of-work descriptions for a client-facing construction estimate. For each category below, write a 2-3 sentence narrative that:
+- Describes the specific work to be performed
+- References actual materials, quantities, and methods from the line items
+- Sounds professional and confidence-inspiring for a homeowner or property manager
+- Does NOT mention any dollar amounts, costs, or pricing
 
 Project: ${estimate.title}
+${estimate.projectType ? `Type: ${estimate.projectType.replace(/_/g, " ")}` : ""}
 Description: ${estimate.description}
+${contractorContext ? `\nContractor:\n${contractorContext}` : ""}
 
-Categories and items:
+Detailed line items by category:
 ${categorySummary}
 
 Return ONLY a JSON array, no other text:
-[{"category": "Category Name", "narrative": "Professional description."}]`,
+[{"category": "Category Name", "narrative": "Professional description referencing specific materials and scope."}]`,
         },
       ],
     })

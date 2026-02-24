@@ -162,7 +162,7 @@ export default async function DashboardPage() {
                       {formatDate(est.createdAt)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 ml-4">
+                  <div className="flex items-center gap-2 sm:gap-3 ml-3 sm:ml-4 shrink-0">
                     <Badge
                       variant={
                         est.status === "WON"

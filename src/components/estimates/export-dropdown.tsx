@@ -135,7 +135,7 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-card border border-card-border rounded-xl shadow-lg z-20 py-1 animate-fade-in">
+        <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] bg-card border border-card-border rounded-xl shadow-lg z-20 py-1 animate-fade-in">
           {/* Client Estimate — recommended, all tiers */}
           <button
             onClick={handleClientPdf}

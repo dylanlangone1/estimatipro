@@ -103,7 +103,7 @@ export function AIWizard({ estimateId }: AIWizardProps) {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-28 right-6 z-40 flex items-center gap-2 px-4 py-2.5 bg-brand-orange text-white rounded-full shadow-lg hover:bg-brand-orange/90 transition-all hover:scale-105 active:scale-95"
+          className="fixed bottom-28 right-4 sm:right-6 z-40 flex items-center gap-2 px-4 py-2.5 bg-brand-orange text-white rounded-full shadow-lg hover:bg-brand-orange/90 transition-all hover:scale-105 active:scale-95"
         >
           <Sparkles className="h-4 w-4" />
           <span className="text-sm font-medium">AI Advisor</span>
@@ -112,7 +112,7 @@ export function AIWizard({ estimateId }: AIWizardProps) {
 
       {/* Slide-out panel */}
       {isOpen && (
-        <div className="fixed bottom-28 right-6 z-40 w-96 max-h-[70vh] bg-card border border-card-border rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden">
+        <div className="fixed bottom-28 right-4 left-4 sm:left-auto sm:right-6 z-40 sm:w-96 max-h-[70vh] bg-card border border-card-border rounded-2xl shadow-2xl flex flex-col animate-fade-in overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-card-border bg-card">
             <div className="flex items-center gap-2">
