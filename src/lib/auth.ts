@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
+import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -11,36 +12,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
     }),
     Credentials({
-      name: "Email Login",
+      name: "Email & Password",
       credentials: {
         email: { label: "Email", type: "email" },
-        name: { label: "Name", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         try {
           const email = (credentials?.email as string)?.toLowerCase().trim()
-          const name = (credentials?.name as string) || email?.split("@")[0] || "User"
+          const password = credentials?.password as string
 
-          if (!email) return null
+          if (!email || !password) return null
 
           // Validate email format
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
           if (!emailRegex.test(email)) return null
 
-          // Find existing user or create new account
-          let user = await prisma.user.findUnique({
+          // Find user by email
+          const user = await prisma.user.findFirst({
             where: { email },
           })
 
-          if (!user) {
-            user = await prisma.user.create({
-              data: {
-                email,
-                name,
-                tier: "FREE",
-              },
-            })
+          if (!user || !user.password) {
+            // User doesn't exist or has no password (Google-only user)
+            return null
           }
+
+          // Verify password
+          const passwordMatch = await bcrypt.compare(password, user.password)
+          if (!passwordMatch) return null
 
           return {
             id: user.id,
@@ -68,7 +68,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account?.provider === "google" && profile?.email) {
         try {
           const email = profile.email.toLowerCase().trim()
-          let dbUser = await prisma.user.findUnique({
+          let dbUser = await prisma.user.findFirst({
             where: { email },
           })
 

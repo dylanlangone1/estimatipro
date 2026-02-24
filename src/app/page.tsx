@@ -21,7 +21,7 @@ export default function LandingPage() {
               Sign In
             </Button>
           </Link>
-          <Link href="/login">
+          <Link href="/register">
             <Button size="sm">Get Started</Button>
           </Link>
         </div>
@@ -41,7 +41,7 @@ export default function LandingPage() {
           The AI that learns YOUR pricing and makes you better at every estimate. Describe a job, get a detailed estimate in seconds. Upload your history, and the AI learns your style.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/login">
+          <Link href="/register">
             <Button size="lg" className="text-base px-8">
               Start Free Trial
               <ArrowRight className="h-5 w-5 ml-2" />
@@ -165,7 +165,7 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/login" className="block">
+                <Link href="/register" className="block">
                   <Button
                     variant={plan.popular ? "primary" : "outline"}
                     className={`w-full ${!plan.popular ? "bg-transparent border-white/20 text-white hover:bg-white/10" : ""}`}
@@ -196,7 +196,7 @@ export default function LandingPage() {
         <p className="text-white/50 mb-8 max-w-md mx-auto">
           Join contractors who are saving hours on every estimate.
         </p>
-        <Link href="/login">
+        <Link href="/register">
           <Button size="lg" className="text-base px-8">
             Start Free Trial
             <ArrowRight className="h-5 w-5 ml-2" />

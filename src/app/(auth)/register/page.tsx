@@ -1,51 +1,62 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, Suspense } from "react"
 import { signIn } from "next-auth/react"
-import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 
-const errorMessages: Record<string, string> = {
-  CredentialsSignin: "Invalid email or password. Please try again.",
-  OAuthSignin: "Could not start Google sign-in. Please try again.",
-  OAuthCallback: "Google sign-in failed. Please try again.",
-  OAuthAccountNotLinked: "This email is already linked to a different sign-in method.",
-  Default: "Something went wrong. Please try again.",
-  Callback: "Sign-in callback error. Please try again.",
-  AccessDenied: "Access denied. Please try again.",
-  Configuration: "Server configuration error. Please contact support.",
-}
-
-function LoginForm() {
-  const searchParams = useSearchParams()
+function RegisterForm() {
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const errorParam = searchParams.get("error")
-    if (errorParam) {
-      setError(errorMessages[errorParam] || errorMessages.Default)
-    }
-  }, [searchParams])
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) return
+    if (!email || !password || !name) return
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.")
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.")
+      return
+    }
+
     setLoading(true)
     setError(null)
+
     try {
+      // Call the register API
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || "Registration failed. Please try again.")
+        setLoading(false)
+        return
+      }
+
+      // Auto-sign in after registration
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
       })
+
       if (result?.error) {
-        setError(errorMessages[result.error] || "Invalid email or password.")
+        setError("Account created but sign-in failed. Please go to login.")
         setLoading(false)
       } else if (result?.ok) {
         window.location.href = "/dashboard"
@@ -68,7 +79,7 @@ function LoginForm() {
               <span className="text-brand-charcoal"> PRO</span>
             </span>
             <p className="text-muted text-sm mt-2">
-              Your Pricing Brain. Powered by AI.
+              Create your account
             </p>
           </div>
 
@@ -79,7 +90,7 @@ function LoginForm() {
             </div>
           )}
 
-          {/* Google sign in */}
+          {/* Google sign up */}
           <Button
             onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
             size="lg"
@@ -103,7 +114,7 @@ function LoginForm() {
                 fill="#EA4335"
               />
             </svg>
-            Continue with Google
+            Sign up with Google
           </Button>
 
           <div className="relative my-6">
@@ -111,12 +122,21 @@ function LoginForm() {
               <div className="w-full border-t border-card-border" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-card text-muted">or sign in with email</span>
+              <span className="px-2 bg-card text-muted">or register with email</span>
             </div>
           </div>
 
-          {/* Email + Password login */}
-          <form onSubmit={handleLogin} className="space-y-3">
+          {/* Registration form */}
+          <form onSubmit={handleRegister} className="space-y-3">
+            <Input
+              id="name"
+              label="Full name"
+              type="text"
+              placeholder="John Smith"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
             <Input
               id="email"
               label="Email address"
@@ -130,9 +150,18 @@ function LoginForm() {
               id="password"
               label="Password"
               type="password"
-              placeholder="••••••••"
+              placeholder="Min. 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <Input
+              id="confirmPassword"
+              label="Confirm password"
+              type="password"
+              placeholder="Re-enter password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
             <Button
@@ -140,16 +169,16 @@ function LoginForm() {
               variant="secondary"
               size="lg"
               className="w-full"
-              disabled={loading || !email || !password}
+              disabled={loading || !email || !password || !name}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted mt-4">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-brand-orange hover:underline font-medium">
-              Create Account
+            Already have an account?{" "}
+            <Link href="/login" className="text-brand-orange hover:underline font-medium">
+              Sign In
             </Link>
           </p>
 
@@ -165,10 +194,10 @@ function LoginForm() {
   )
 }
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <Suspense>
-      <LoginForm />
+      <RegisterForm />
     </Suspense>
   )
 }

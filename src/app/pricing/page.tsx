@@ -63,7 +63,7 @@ export default function PricingPage() {
             <span className="text-white"> PRO</span>
           </span>
         </Link>
-        <Link href="/login">
+        <Link href="/register">
           <Button size="sm">Get Started</Button>
         </Link>
       </nav>
@@ -115,7 +115,7 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/login" className="block">
+              <Link href="/register" className="block">
                 <Button
                   variant={plan.popular ? "primary" : "outline"}
                   size="lg"

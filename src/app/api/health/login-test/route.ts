@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(request: Request) {
@@ -19,9 +20,9 @@ export async function GET(request: Request) {
     return NextResponse.json(steps, { status: 500 })
   }
 
-  // Step 2: Find user by email
+  // Step 2: Find user by email using findFirst
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: { email: email.toLowerCase().trim() },
     })
     if (user) {
@@ -31,30 +32,20 @@ export async function GET(request: Request) {
         email: user.email,
         name: user.name,
         tier: user.tier,
+        hasPassword: !!user.password,
+      }
+
+      // Step 3: Test password verification
+      if (user.password) {
+        const testMatch = await bcrypt.compare("EstimAI2024!", user.password)
+        steps.step3_passwordTest = {
+          status: testMatch ? "MATCH" : "NO_MATCH",
+        }
+      } else {
+        steps.step3_passwordTest = { status: "NO_PASSWORD_SET" }
       }
     } else {
       steps.step2_findUser = { status: "NOT_FOUND" }
-
-      // Step 3: Try creating user
-      try {
-        const newUser = await prisma.user.create({
-          data: {
-            email: email.toLowerCase().trim(),
-            name: email.split("@")[0],
-            tier: "FREE",
-          },
-        })
-        steps.step3_createUser = {
-          status: "CREATED",
-          id: newUser.id,
-          email: newUser.email,
-        }
-      } catch (error) {
-        steps.step3_createUser = {
-          status: "ERROR",
-          error: error instanceof Error ? error.message : String(error),
-        }
-      }
     }
   } catch (error) {
     steps.step2_findUser = {
@@ -63,10 +54,10 @@ export async function GET(request: Request) {
     }
   }
 
-  // Step 4: List all users
+  // Step 4: List all users (basic info)
   try {
     const allUsers = await prisma.user.findMany({
-      select: { id: true, email: true, name: true, tier: true },
+      select: { id: true, email: true, name: true, tier: true, password: false },
     })
     steps.step4_allUsers = allUsers
   } catch (error) {

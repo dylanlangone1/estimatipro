@@ -24,12 +24,10 @@ export async function updateMaterialLibrary(userId: string, invoiceId: string) {
     const supplier = item.supplierInvoice.supplierName || "Unknown"
 
     // Try to find existing entry
-    const existing = await prisma.materialPriceLibrary.findUnique({
+    const existing = await prisma.materialPriceLibrary.findFirst({
       where: {
-        userId_materialName: {
-          userId,
-          materialName,
-        },
+        userId,
+        materialName,
       },
     })
 
