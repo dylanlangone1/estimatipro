@@ -1,11 +1,9 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
-import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
   trustHost: true,
   providers: [
     Google({
@@ -35,7 +33,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           })
 
           if (!user) {
-            // Create new account
             user = await prisma.user.create({
               data: {
                 email,
@@ -52,7 +49,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             image: user.image,
           }
         } catch (error) {
-          console.error("Auth error:", error)
+          console.error("Credentials auth error:", error)
           return null
         }
       },
@@ -66,6 +63,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: "/login",
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      // For Google OAuth: find or create user in database
+      if (account?.provider === "google" && profile?.email) {
+        try {
+          const email = profile.email.toLowerCase().trim()
+          let dbUser = await prisma.user.findUnique({
+            where: { email },
+          })
+
+          if (!dbUser) {
+            dbUser = await prisma.user.create({
+              data: {
+                email,
+                name: profile.name || email.split("@")[0],
+                image: profile.picture || null,
+                tier: "FREE",
+              },
+            })
+          } else if (profile.picture && !dbUser.image) {
+            // Update image if user doesn't have one
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { image: profile.picture },
+            })
+          }
+
+          // Attach DB user id to the user object for the jwt callback
+          user.id = dbUser.id
+        } catch (error) {
+          console.error("Google signIn error:", error)
+          return false
+        }
+      }
+      return true
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
