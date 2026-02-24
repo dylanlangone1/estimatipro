@@ -6,7 +6,7 @@ import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import type { ProposalData } from "@/types/proposal"
 
 // Proposal generation via AI can take 30–60 s
-export const maxDuration = 60
+export const maxDuration = 300
 
 /**
  * POST /api/ai/proposal

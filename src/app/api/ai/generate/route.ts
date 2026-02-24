@@ -12,7 +12,7 @@ import { buildDescriptionFromGuided, buildDescriptionFromManual } from "@/lib/ai
 import { rateLimit } from "@/lib/rate-limit"
 
 // AI generation can take 30–90 s for large estimates — raise Vercel function timeout
-export const maxDuration = 60
+export const maxDuration = 300
 
 export async function POST(req: Request) {
   try {

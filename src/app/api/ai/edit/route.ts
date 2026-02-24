@@ -9,7 +9,7 @@ import { analyzeCorrectionAndLearn } from "@/lib/ai/correction-learning-engine"
 import { rateLimit } from "@/lib/rate-limit"
 
 // AI edit calls can take 30–60 s — raise Vercel function timeout
-export const maxDuration = 60
+export const maxDuration = 300
 
 export async function POST(req: Request) {
   try {

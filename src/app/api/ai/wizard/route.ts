@@ -6,7 +6,7 @@ import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { rateLimit } from "@/lib/rate-limit"
 
 // AI wizard responses can take 15–30 s
-export const maxDuration = 60
+export const maxDuration = 300
 
 export async function POST(req: Request) {
   try {

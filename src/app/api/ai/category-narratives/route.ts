@@ -5,7 +5,7 @@ import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import type { CategoryNarrative, ProposalData } from "@/types/proposal"
 
 // AI narrative generation can take 20–45 s
-export const maxDuration = 60
+export const maxDuration = 300
 
 /**
  * POST /api/ai/category-narratives

@@ -10,7 +10,7 @@ import { extractAndSaveBrands } from "@/lib/ai/brand-extraction-engine"
 import { recalculatePricingDNA } from "@/lib/ai/pricing-dna-engine"
 
 // Document parsing + multi-step AI pipeline can take 30–60 s
-export const maxDuration = 60
+export const maxDuration = 300
 
 export async function POST(req: Request) {
   try {
