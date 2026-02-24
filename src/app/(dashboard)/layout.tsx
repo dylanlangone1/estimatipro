@@ -26,14 +26,20 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Sidebar userTier={user?.tier ?? "FREE"} />
-      <main className="lg:pl-64">
+      <main className="lg:pl-64 flex-1">
         <div className="px-4 sm:px-6 lg:px-8 py-6 pt-16 lg:pt-6">
           <PWAInstallPrompt />
           {children}
         </div>
       </main>
+      <footer className="lg:pl-64 border-t border-border/40 py-4 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>&copy; {new Date().getFullYear()} EstimAI Pro. All rights reserved.</span>
+          <span>Patent Pending</span>
+        </div>
+      </footer>
     </div>
   )
 }

@@ -128,6 +128,13 @@ export default function PricingPage() {
           ))}
         </div>
       </div>
+
+      <footer className="border-t border-white/10 py-6 px-6 sm:px-12 mt-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-white/30 max-w-5xl mx-auto">
+          <span>&copy; {new Date().getFullYear()} EstimAI Pro. All rights reserved.</span>
+          <span>Patent Pending</span>
+        </div>
+      </footer>
     </div>
   )
 }

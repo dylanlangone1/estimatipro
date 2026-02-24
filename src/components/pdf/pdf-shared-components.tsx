@@ -79,9 +79,10 @@ export function PDFPageHeader({ logoPath, companyName, pageLabel, color }: PDFPa
 interface PDFPageFooterProps {
   companyName?: string
   showBranding?: boolean
+  showPatentPending?: boolean
 }
 
-export function PDFPageFooter({ companyName, showBranding = true }: PDFPageFooterProps) {
+export function PDFPageFooter({ companyName, showBranding = true, showPatentPending = true }: PDFPageFooterProps) {
   return (
     <View
       style={{
@@ -113,9 +114,12 @@ export function PDFPageFooter({ companyName, showBranding = true }: PDFPageFoote
           fontSize: fontSize.xs,
           color: colors.gray300,
         }}
-        render={({ pageNumber, totalPages }) =>
-          `Page ${pageNumber} of ${totalPages}${showBranding ? "  |  EstimAI Pro" : ""}`
-        }
+        render={({ pageNumber, totalPages }) => {
+          let right = `Page ${pageNumber} of ${totalPages}`
+          if (showBranding) right += "  |  EstimAI Pro"
+          if (showPatentPending) right += "  |  Patent Pending"
+          return right
+        }}
       />
     </View>
   )
