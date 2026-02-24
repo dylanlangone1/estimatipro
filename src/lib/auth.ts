@@ -12,32 +12,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
     }),
     Credentials({
-      name: "Demo Login",
+      name: "Email Login",
       credentials: {
         email: { label: "Email", type: "email" },
         name: { label: "Name", type: "text" },
       },
       async authorize(credentials) {
-        const email = credentials?.email as string
-        const name = (credentials?.name as string) || "Demo User"
+        const email = (credentials?.email as string)?.toLowerCase().trim()
+        const name = (credentials?.name as string) || email?.split("@")[0] || "User"
 
         if (!email) return null
 
-        // Only allow demo account via credentials — all other users must use Google OAuth
-        const DEMO_EMAIL = "demo@estimaipro.com"
-        if (email.toLowerCase() !== DEMO_EMAIL) {
-          return null
-        }
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(email)) return null
 
-        // Find or create demo user
+        // Find existing user or create new account
         let user = await prisma.user.findUnique({
-          where: { email: DEMO_EMAIL },
+          where: { email },
         })
 
         if (!user) {
+          // Create new account
           user = await prisma.user.create({
             data: {
-              email: DEMO_EMAIL,
+              email,
               name,
               tier: "FREE",
             },

@@ -51,29 +51,9 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Demo Login */}
-          <Button
-            onClick={handleDemoLogin}
-            size="lg"
-            className="w-full mb-4"
-            disabled={demoLoading}
-          >
-            {demoLoading ? "Signing in..." : "🚀 Try Demo — Instant Access"}
-          </Button>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-card-border" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-card text-muted">or sign in with</span>
-            </div>
-          </div>
-
           {/* Google sign in */}
           <Button
             onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-            variant="outline"
             size="lg"
             className="w-full flex items-center justify-center gap-3"
           >
@@ -103,11 +83,11 @@ export default function LoginPage() {
               <div className="w-full border-t border-card-border" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-card text-muted">or</span>
+              <span className="px-2 bg-card text-muted">or continue with email</span>
             </div>
           </div>
 
-          {/* Email sign in */}
+          {/* Email sign in / create account */}
           <form onSubmit={handleEmailLogin} className="space-y-3">
             <Input
               id="name"
@@ -133,9 +113,29 @@ export default function LoginPage() {
               className="w-full"
               disabled={loading || !email}
             >
-              {loading ? "Signing in..." : "Sign in with Email"}
+              {loading ? "Signing in..." : "Sign In / Create Account"}
             </Button>
           </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-card-border" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-card text-muted">or</span>
+            </div>
+          </div>
+
+          {/* Demo Login */}
+          <Button
+            onClick={handleDemoLogin}
+            variant="outline"
+            size="lg"
+            className="w-full"
+            disabled={demoLoading}
+          >
+            {demoLoading ? "Signing in..." : "Try Demo — No Sign Up Needed"}
+          </Button>
 
           {/* Footer */}
           <p className="text-center text-sm text-muted mt-8">
