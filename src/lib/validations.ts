@@ -12,11 +12,24 @@ export const lineItemSchema = z.object({
   markupPercent: z.number().optional(),
 })
 
+// Resilient severity normalizer — maps any AI-returned severity string to one of
+// the three valid values. Claude sometimes returns "error", "high", "medium", etc.
+// which broke the old z.enum(). Using z.string() + transform prevents that crash.
+const normalizeSeverity = z
+  .string()
+  .optional()
+  .transform((v): "info" | "warning" | "critical" => {
+    const s = (v ?? "").toLowerCase()
+    if (s === "critical" || s === "error" || s === "severe" || s === "fatal") return "critical"
+    if (s === "warning" || s === "high" || s === "medium" || s === "warn") return "warning"
+    return "info"
+  })
+
 export const deviationAlertSchema = z.union([
   z.object({
     lineItem: z.string().optional().default(""),
     alert: z.string(),
-    severity: z.enum(["info", "warning", "critical"]).optional().default("info"),
+    severity: normalizeSeverity,
   }),
   z.string().transform((s) => ({
     lineItem: "",
@@ -28,7 +41,7 @@ export const deviationAlertSchema = z.union([
 export const estimateResponseSchema = z.object({
   title: z.string(),
   projectType: z.string().optional().default("residential"),
-  assumptions: z.array(z.string()).optional().default([]),
+  assumptions: z.array(z.string()).catch([]).optional().default([]),
   lineItems: z.array(lineItemSchema).min(1),
   subtotal: z.number(),
   suggestedMarkupPercent: z.number().optional().default(20),
@@ -36,8 +49,8 @@ export const estimateResponseSchema = z.object({
   suggestedTax: z.number().optional().default(0),
   totalAmount: z.number(),
   estimatedDuration: z.string().optional().default("TBD"),
-  notes: z.array(z.string()).optional().default([]),
-  deviationAlerts: z.array(deviationAlertSchema).optional().default([]),
+  notes: z.array(z.string()).catch([]).optional().default([]),
+  deviationAlerts: z.array(deviationAlertSchema).catch([]).optional().default([]),
 })
 
 export const editResponseSchema = z.object({
@@ -50,6 +63,7 @@ export const editResponseSchema = z.object({
         lineItem: z.string().optional(),
       })
     )
+    .catch([])
     .optional()
     .default([]),
 })
