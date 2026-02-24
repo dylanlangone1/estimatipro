@@ -97,11 +97,18 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
   const [activeTab, setActiveTab] = useState("costs")
   const [isContract, setIsContract] = useState(estimate.isContract)
 
+  // Strip AI prompt-engineering text that may be baked into older DB records
+  // (PROJECT LOCATION / PERMIT NOTE blocks injected during generation).
+  const cleanedDescription = estimate.description
+    .split("\n\nPROJECT LOCATION:")[0]
+    .split("\n\nPERMIT NOTE:")[0]
+    .trim()
+
   // ─── Inline editing state ───
   const [editingTitle, setEditingTitle] = useState(false)
   const [editTitleValue, setEditTitleValue] = useState(estimate.title)
   const [editingDescription, setEditingDescription] = useState(false)
-  const [editDescValue, setEditDescValue] = useState(estimate.description)
+  const [editDescValue, setEditDescValue] = useState(cleanedDescription)
   const [isSavingField, setIsSavingField] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const descTextareaRef = useRef<HTMLTextAreaElement>(null)
@@ -366,7 +373,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
               {!editingDescription && (
                 <button
                   onClick={() => {
-                    setEditDescValue(estimate.description)
+                    setEditDescValue(cleanedDescription)
                     setEditingDescription(true)
                   }}
                   className="p-1.5 text-muted hover:text-brand-orange transition-colors rounded-lg hover:bg-card-border/20"
@@ -402,7 +409,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      setEditDescValue(estimate.description)
+                      setEditDescValue(cleanedDescription)
                       setEditingDescription(false)
                     }}
                   >
@@ -413,7 +420,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
             ) : (
               <>
                 <p className="text-foreground whitespace-pre-wrap">
-                  {estimate.description}
+                  {cleanedDescription}
                 </p>
                 {assumptions.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-card-border">
@@ -584,7 +591,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
         <ClientEstimateView
           estimateId={estimate.id}
           title={estimate.title}
-          description={estimate.description}
+          description={cleanedDescription}
           projectType={estimate.projectType}
           createdAt={estimate.createdAt}
           clientName={estimate.client?.name ?? null}

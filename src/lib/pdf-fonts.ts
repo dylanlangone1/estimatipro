@@ -6,8 +6,13 @@ import path from "path"
  * Register Inter font family for PDF rendering.
  *
  * Strategy: Try local filesystem first (fast, no network),
- * fall back to Google Fonts CDN (works on Vercel serverless
- * where public/ may not be in the function bundle).
+ * fall back to Bunny Fonts CDN (GDPR-friendly Google Fonts mirror).
+ *
+ * Bunny Fonts uses semantic (non-hash) paths so URLs never go stale:
+ *   https://fonts.bunny.net/inter/files/inter-latin-{weight}-normal.ttf
+ *
+ * This is more reliable than fonts.gstatic.com/s/inter/v20/... URLs
+ * which are version-hash-based and can break when Inter is updated.
  */
 
 const FONT_DIR = path.join(process.cwd(), "public", "fonts")
@@ -31,14 +36,14 @@ if (localFontsAvailable) {
     ],
   })
 } else {
-  // Fallback: Google Fonts CDN — reliable on Vercel serverless
+  // Fallback: Bunny Fonts CDN — semantic URLs that don't break on font version updates
   Font.register({
     family: "Inter",
     fonts: [
-      { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf", fontWeight: 400 },
-      { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fMZg.ttf", fontWeight: 500 },
-      { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYMZg.ttf", fontWeight: 600 },
-      { src: "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf", fontWeight: 700 },
+      { src: "https://fonts.bunny.net/inter/files/inter-latin-400-normal.ttf", fontWeight: 400 },
+      { src: "https://fonts.bunny.net/inter/files/inter-latin-500-normal.ttf", fontWeight: 500 },
+      { src: "https://fonts.bunny.net/inter/files/inter-latin-600-normal.ttf", fontWeight: 600 },
+      { src: "https://fonts.bunny.net/inter/files/inter-latin-700-normal.ttf", fontWeight: 700 },
     ],
   })
 }

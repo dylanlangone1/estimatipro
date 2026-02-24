@@ -32,6 +32,7 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
   const { toast } = useToast()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
   const [isGeneratingProposal, setIsGeneratingProposal] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -50,15 +51,50 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
 
   const canBranded = tierAtLeast(userTier, "PRO")
   const canProposal = tierAtLeast(userTier, "MAX")
+  const isBusy = isDownloading || isGeneratingProposal
+
+  /**
+   * Download a PDF via fetch → blob → anchor click.
+   * Using fetch instead of window.open() ensures:
+   *  - Errors surface as toast messages instead of raw JSON in a new tab
+   *  - Popup blockers cannot interfere
+   *  - The file is saved with the correct filename
+   */
+  async function downloadPdf(url: string, filename: string) {
+    setIsDownloading(true)
+    setIsOpen(false)
+    try {
+      const res = await fetch(url)
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error((data as { error?: string }).error || `PDF generation failed (${res.status})`)
+      }
+      const blob = await res.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = objectUrl
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(objectUrl)
+    } catch (err) {
+      toast({
+        title: "PDF download failed",
+        description: err instanceof Error ? err.message : "Something went wrong",
+        variant: "error",
+      })
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   function handleClientPdf() {
-    window.open(`/api/pdf/${estimateId}?type=client`, "_blank")
-    setIsOpen(false)
+    downloadPdf(`/api/pdf/${estimateId}?type=client`, "Client Estimate.pdf")
   }
 
   function handleStandardPdf() {
-    window.open(`/api/pdf/${estimateId}?type=standard`, "_blank")
-    setIsOpen(false)
+    downloadPdf(`/api/pdf/${estimateId}?type=standard`, "Estimate.pdf")
   }
 
   function handleBrandedPdf() {
@@ -70,8 +106,7 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
       })
       return
     }
-    window.open(`/api/pdf/${estimateId}?type=branded`, "_blank")
-    setIsOpen(false)
+    downloadPdf(`/api/pdf/${estimateId}?type=branded`, "Branded Estimate.pdf")
   }
 
   async function handleProposalPdf() {
@@ -96,11 +131,11 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || "Failed to generate proposal")
+        throw new Error((data as { error?: string }).error || "Failed to generate proposal")
       }
 
-      // Open the proposal PDF
-      window.open(`/api/pdf/${estimateId}?type=proposal`, "_blank")
+      // Download the proposal PDF via the same fetch→blob pattern
+      await downloadPdf(`/api/pdf/${estimateId}?type=proposal`, "Proposal.pdf")
     } catch (err) {
       toast({
         title: "Proposal generation failed",
@@ -118,12 +153,17 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
         variant="outline"
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        disabled={isGeneratingProposal}
+        disabled={isBusy}
       >
         {isGeneratingProposal ? (
           <>
             <Spinner size="sm" className="mr-1.5" />
             Generating...
+          </>
+        ) : isDownloading ? (
+          <>
+            <Spinner size="sm" className="mr-1.5" />
+            Downloading...
           </>
         ) : (
           <>
@@ -139,7 +179,8 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
           {/* Client Estimate — recommended, all tiers */}
           <button
             onClick={handleClientPdf}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left"
+            disabled={isBusy}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left disabled:opacity-50"
           >
             <Users className="h-4 w-4 text-brand-orange shrink-0" />
             <div className="flex-1">
@@ -151,7 +192,8 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
           {/* Standard PDF */}
           <button
             onClick={handleStandardPdf}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left"
+            disabled={isBusy}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left disabled:opacity-50"
           >
             <FileText className="h-4 w-4 text-muted shrink-0" />
             <div className="flex-1">
@@ -163,7 +205,8 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
           {/* Branded PDF */}
           <button
             onClick={handleBrandedPdf}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left"
+            disabled={isBusy}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left disabled:opacity-50"
           >
             <Palette className="h-4 w-4 text-brand-orange shrink-0" />
             <div className="flex-1">
@@ -171,7 +214,7 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
                 Branded PDF
                 {!canBranded && <Lock className="h-3 w-3 text-muted" />}
               </p>
-              <p className="text-xs text-muted">With your logo & brand colors</p>
+              <p className="text-xs text-muted">With your logo &amp; brand colors</p>
             </div>
             {!canBranded && (
               <Badge variant="default" className="text-[10px] px-1.5 py-0">
@@ -183,7 +226,8 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
           {/* Full Proposal */}
           <button
             onClick={handleProposalPdf}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left"
+            disabled={isBusy}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left disabled:opacity-50"
           >
             <BookOpen className="h-4 w-4 text-brand-orange shrink-0" />
             <div className="flex-1">
@@ -191,7 +235,7 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
                 Full Proposal
                 {!canProposal && <Lock className="h-3 w-3 text-muted" />}
               </p>
-              <p className="text-xs text-muted">7-page document with scope & timeline</p>
+              <p className="text-xs text-muted">7-page document with scope &amp; timeline</p>
             </div>
             {!canProposal && (
               <Badge variant="default" className="text-[10px] px-1.5 py-0">

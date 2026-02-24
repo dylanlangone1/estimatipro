@@ -15,6 +15,15 @@ import type { TemplateConfig, ProposalData, CategoryNarrative, TermsSection } fr
 import "@/lib/pdf-fonts"
 
 /**
+ * Strip AI prompt-engineering text injected during generation
+ * (PROJECT LOCATION / PERMIT NOTE blocks) from stored descriptions
+ * so they never appear in PDFs or the UI.
+ */
+function cleanDescription(raw: string): string {
+  return raw.split("\n\nPROJECT LOCATION:")[0].split("\n\nPERMIT NOTE:")[0].trim()
+}
+
+/**
  * Fetches a logo image and converts it to a base64 data URI.
  * @react-pdf/renderer handles data URIs reliably, avoiding CORS
  * and network issues that occur with external URLs (Vercel Blob, etc.).
@@ -148,7 +157,7 @@ export async function GET(
         catGroups[item.category].rawTotal += item.totalCost
       }
 
-      const multiplier = 1 + estimate.markupPercent / 100
+      const multiplier = 1 + (estimate.markupPercent || 0) / 100
 
       // Get category narratives from proposalData
       const proposalDataRaw = estimate.proposalData as unknown as ProposalData | null
@@ -185,7 +194,7 @@ export async function GET(
 
       pdfElement = React.createElement(ClientEstimatePDF, {
         title: estimate.title,
-        description: estimate.description,
+        description: cleanDescription(estimate.description),
         categories,
         clientSubtotal,
         taxAmount: estimate.taxAmount,
@@ -232,7 +241,7 @@ export async function GET(
 
       pdfElement = React.createElement(BrandedEstimatePDF, {
         title: estimate.title,
-        description: estimate.description,
+        description: cleanDescription(estimate.description),
         lineItems,
         subtotal: estimate.subtotal,
         markupPercent: estimate.markupPercent,
@@ -304,7 +313,7 @@ export async function GET(
 Company: ${user.companyName || "Not provided"}
 Trades: ${user.trades.join(", ") || "General contractor"}
 Project: ${estimate.title}
-Description: ${estimate.description}
+Description: ${cleanDescription(estimate.description)}
 Total: $${estimate.totalAmount.toFixed(2)}
 
 Line Items by Category:
@@ -338,7 +347,7 @@ Return ONLY a JSON object:
 
       pdfElement = React.createElement(ProposalPDF, {
         title: estimate.title,
-        description: estimate.description,
+        description: cleanDescription(estimate.description),
         lineItems,
         subtotal: estimate.subtotal,
         markupPercent: estimate.markupPercent,
@@ -365,7 +374,7 @@ Return ONLY a JSON object:
 
       pdfElement = React.createElement(EstimatePDF, {
         title: estimate.title,
-        description: estimate.description,
+        description: cleanDescription(estimate.description),
         lineItems,
         subtotal: estimate.subtotal,
         markupPercent: estimate.markupPercent,
