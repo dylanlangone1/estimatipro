@@ -1,0 +1,252 @@
+/**
+ * Converts structured input from Guided and Manual modes
+ * into rich, natural-language project descriptions for the AI estimator.
+ * The richer the description, the more accurate the estimate.
+ */
+
+import { QUALITY_LEVELS, COST_BENCHMARKS } from "@/lib/quality-levels"
+import { PROJECT_TYPES } from "@/lib/project-types"
+import { SCOPE_ITEMS } from "@/lib/scope-items"
+
+interface GuidedInput {
+  projectType: string
+  trades: string[]
+  sqft: string
+  qualityLevel: string
+  notes?: string
+}
+
+interface ManualInput {
+  trades: string[]
+  projectType: string
+  scopeItems: string[]
+  qualityLevel: string
+  notes?: string
+}
+
+function getProjectLabel(key: string): string {
+  return PROJECT_TYPES.find((p) => p.key === key)?.label || key
+}
+
+function getQualityInfo(key: string): { label: string; description: string } {
+  const level = QUALITY_LEVELS.find((q) => q.key === key)
+  return level
+    ? { label: level.label, description: level.description }
+    : { label: key, description: key }
+}
+
+function getCostBenchmark(projectType: string, qualityLevel: string): string | null {
+  const benchmarks = COST_BENCHMARKS[projectType]
+  if (!benchmarks) return null
+  return benchmarks[qualityLevel] || null
+}
+
+/**
+ * Returns the full list of typical scope items for a project type.
+ * Used to tell the AI what to include even when the user doesn't list everything.
+ */
+function getTypicalScopeItems(projectType: string): string[] {
+  return SCOPE_ITEMS[projectType] || []
+}
+
+/**
+ * Project category: determines whether the project is working from scratch
+ * or modifying an existing structure. This changes what utilities, site work,
+ * and demolition items are needed.
+ */
+type ProjectCategory = "new_build" | "renovation" | "replacement" | "repair"
+
+const PROJECT_CATEGORY: Record<string, ProjectCategory> = {
+  kitchen_remodel: "renovation",
+  bathroom_remodel: "renovation",
+  full_home_renovation: "renovation",
+  room_addition: "new_build", // hybrid — new structure tied into existing
+  deck_patio: "new_build",
+  basement_finish: "renovation",
+  new_construction: "new_build",
+  commercial_ti: "renovation",
+  roof_replacement: "replacement",
+  window_replacement: "replacement",
+  siding_replacement: "replacement",
+  electrical_panel_upgrade: "replacement",
+  hvac_replacement: "replacement",
+  custom_other: "renovation",
+}
+
+/**
+ * Context text injected based on project category.
+ * Tells the AI what's fundamentally different about this type of work.
+ */
+const CATEGORY_CONTEXT: Record<ProjectCategory, string> = {
+  new_build: `PROJECT CATEGORY: NEW BUILD — Building from scratch or adding new structure. Key considerations:
+- UTILITIES: Water supply (drilled well $5K-15K, dug well $3K-8K, OR municipal water connection $2K-8K). Sewer (septic system with tank + leach field $10K-25K, OR municipal sewer connection $3K-10K). Electrical service from utility ($2K-5K). Gas service or propane tank if applicable.
+- SITE WORK: Survey, soil/perc test, clearing, stumping, erosion control, grading, access road. Tree removal if needed.
+- FOUNDATION: Full basement, crawl space, or slab on grade — each has different cost implications.
+- DRIVEWAY: Gravel ($3-8/SF), asphalt ($4-10/SF), concrete ($8-15/SF). Include base prep and grading.
+- PERMITS: Building permit, electrical permit, plumbing permit, septic permit (if applicable), driveway permit. May need wetlands, zoning, or environmental review.
+- Include ALL utility rough-ins and connections as separate line items.`,
+  renovation: `PROJECT CATEGORY: RENOVATION / REMODEL — Working within an existing structure. Key considerations:
+- EXISTING UTILITIES already in place — may need modification/upgrade, NOT new install (unless adding new fixtures/circuits).
+- DEMOLITION of existing finishes required before new work. Include haul-off and dumpster.
+- PROTECTION of existing finishes not being remodeled (floors, walls, furniture, fixtures).
+- MATCHING existing materials where new meets old (paint, flooring transitions, trim profiles).
+- OCCUPIED SPACE: May need to work around homeowner's schedule. Consider dust barriers, temporary pathways.
+- PRE-1978 HOMES: May need lead paint testing ($300-500) and/or asbestos testing ($200-600). If positive, abatement costs are significant.
+- STRUCTURAL MODIFICATIONS may need engineering review ($500-2,000 for residential).
+- SURPRISES: Budget 10% contingency — opening walls often reveals unexpected conditions (rot, outdated wiring, plumbing issues).`,
+  replacement: `PROJECT CATEGORY: REPLACEMENT — Removing existing system and installing new. Key considerations:
+- REMOVAL & DISPOSAL of existing materials (include dumpster/haul-off).
+- INSPECTION of underlying structure once existing is removed (sheathing, framing, substrate condition).
+- REPAIRS to underlying structure if damage found (allowance for sheathing replacement, framing repair, etc.).
+- MATCHING existing adjacent work where new meets old.
+- CODE UPGRADES: New installation must meet current code even if existing didn't (ice & water shield, arc-fault breakers, ventilation requirements, etc.).
+- WARRANTY: New materials typically carry manufacturer warranty — note in assumptions.`,
+  repair: `PROJECT CATEGORY: REPAIR — Fixing or restoring specific issues. Key considerations:
+- DIAGNOSIS: Include time to assess and diagnose the problem.
+- TARGETED WORK: Only repair what's needed, but include related items that will be disturbed.
+- MATCHING: Must match existing materials, finishes, and quality. Matching can be harder and more expensive than full replacement.
+- MINIMUM CHARGES: Most trades have a minimum service call / trip charge ($150-300).`,
+}
+
+/**
+ * Project-type-specific guidance for the AI.
+ * These are expert notes that help the AI produce accurate estimates.
+ */
+const PROJECT_GUIDANCE: Record<string, string> = {
+  kitchen_remodel:
+    "Include all demo, rough-in, finish work. Cabinets are typically 30-40% of budget. Counter SF = perimeter LF × depth (typically 25\"). Include backsplash, undercabinet lighting, GFCIs. Don't forget appliance hookups, plumbing connections, final trim. Gas line for range if needed.",
+  bathroom_remodel:
+    "Waterproofing is critical — include Kerdi or equivalent membrane. Tile includes backer board, thin-set, grout, and sealer. Include exhaust fan (code required), GFCI outlets, mirror, accessories. Shower/tub plumbing includes valve, trim, and head. Heated floor if selected.",
+  full_home_renovation:
+    "Phase the work logically: demo → structural → rough-in (MEP) → insulation → drywall → finish. Include temporary living considerations. HVAC ductwork modification is almost always needed. Don't forget smoke/CO detectors, arc-fault breakers. Lead/asbestos testing for pre-1978 homes.",
+  room_addition:
+    "Foundation (slab or crawl), structural tie-in to existing, roofing tie-in, siding match. Must include engineering/structural plans. Utility extensions (electric, plumbing, HVAC) to new space. Match existing finishes. Frost-depth footings required.",
+  deck_patio:
+    "Include footings/piers (below frost line), ledger board with flashing, post bases, beam/joist framing, decking, railings (code: 36\" min residential, 42\" commercial), stairs with stringers. Include staining/sealing if wood. Concrete patio includes base prep, forms, reinforcement, finishing.",
+  basement_finish:
+    "Address moisture first — include vapor barrier or dimple mat. Egress window required for bedrooms (code). Include sump pump if none exists. Ceiling options: drywall (cleaner) vs drop ceiling (access to mechanicals). Include bathroom rough-in if applicable. Radon mitigation if applicable.",
+  new_construction:
+    "Full scope from site work through CO. WATER SUPPLY: drilled well ($5K-15K) or dug well ($3K-8K) or municipal water connection ($2K-8K) — include based on scope selection. SEWER: septic system with tank + leach field ($10K-25K, includes perc test & design) or municipal sewer connection ($3K-10K). POWER: electrical service drop/underground from utility ($2K-5K). Include survey, clearing/stumping, excavation, foundation, backfill/grading, framing, roofing, windows, doors, siding, all MEP rough + finish, insulation, drywall, flooring, cabinets, counters, paint, trim, fixtures, appliances. DRIVEWAY: paved (asphalt $4-10/SF, concrete $8-15/SF) or gravel ($3-8/SF) — include base prep, grading, culvert if needed. Landscaping: final grade, topsoil, seed/sod, plantings. Don't forget: building permit, well permit, septic permit, electrical permit, driveway permit.",
+  commercial_ti:
+    "Includes demo of existing, new framing/layout, all MEP to suit, fire protection/sprinkler mods, ceiling grid, flooring, ADA compliance (restrooms, clearances, signage). Prevailing wage may apply. Include architect/engineering fees if tenant responsibility. IT/low voltage rough-in.",
+  roof_replacement:
+    "Include: tear-off existing (1 or 2 layers), inspect/repair sheathing (allowance for OSB/plywood replacement), ice & water shield at eaves/valleys/penetrations, synthetic underlayment on field, drip edge at eaves and rakes, starter strip, field shingles, ridge cap, flashing at walls/pipes/vents/chimneys, ridge vent, pipe boots, step flashing. Include dumpster for tear-off debris. Assume permit required and inspection needed.",
+  window_replacement:
+    "Includes removal of existing, prep opening, install new window with shims, insulate gaps (low-expand foam), flash/weatherproof, interior trim/casing, exterior trim/caulk, painting touch-up. Price per window varies by size and type. Include egress compliance check for bedrooms. Storm windows if applicable.",
+  siding_replacement:
+    "Remove existing siding, inspect/repair sheathing, install housewrap (Tyvek or equivalent), install new siding, trim, soffit, fascia. Include flashing at all penetrations. Corner boards, window/door trim wrapping. Caulk and paint/finish. Material options: vinyl ($4-8/SF), fiber cement/Hardie ($8-14/SF), wood ($10-18/SF), stone veneer ($25-45/SF).",
+  electrical_panel_upgrade:
+    "200A standard for modern homes. Includes: disconnect with utility, remove old panel, install new panel and breakers, reconnect all circuits, label, ground rod, bonding. Include utility coordination and meter base if needed. Surge protection whole-house. Inspection required.",
+  hvac_replacement:
+    "Includes: disconnect/remove old equipment, install new indoor + outdoor units, refrigerant lines, thermostat, electrical connections, ductwork modifications if needed. Include line-set cover for mini-splits. Recovery/disposal of old refrigerant (EPA required). Zoning system if selected.",
+  custom_other:
+    "Break down into logical categories. Include all labor, materials, equipment, and overhead. Don't forget mobilization, permits, and cleanup.",
+}
+
+export function buildDescriptionFromGuided(input: GuidedInput): string {
+  const parts: string[] = []
+
+  // Project type + size
+  const projectLabel = getProjectLabel(input.projectType)
+  parts.push(`${projectLabel}, approximately ${input.sqft} square feet.`)
+
+  // Project category context (new build vs renovation vs replacement)
+  const category = PROJECT_CATEGORY[input.projectType] || "renovation"
+  const categoryContext = CATEGORY_CONTEXT[category]
+  if (categoryContext) {
+    parts.push(categoryContext)
+  }
+
+  // Trades involved
+  if (input.trades.length > 0) {
+    parts.push(`Trades involved: ${input.trades.join(", ")}.`)
+  }
+
+  // Quality level with detail
+  const quality = getQualityInfo(input.qualityLevel)
+  parts.push(`Quality level: ${quality.label} (${quality.description.toLowerCase()}).`)
+
+  // Cost benchmark for AI context
+  const benchmark = getCostBenchmark(input.projectType, input.qualityLevel)
+  if (benchmark) {
+    parts.push(`Target cost range: ${benchmark} installed before markup.`)
+  }
+
+  // Typical scope items the AI should consider
+  const typicalScope = getTypicalScopeItems(input.projectType)
+  if (typicalScope.length > 0) {
+    parts.push(`Typical scope includes: ${typicalScope.join(", ")}. Include all applicable items.`)
+  }
+
+  // Project-specific expert guidance
+  const guidance = PROJECT_GUIDANCE[input.projectType]
+  if (guidance) {
+    parts.push(`Pro tips: ${guidance}`)
+  }
+
+  // Notes
+  if (input.notes?.trim()) {
+    parts.push(`Additional details from contractor: ${input.notes.trim()}`)
+  }
+
+  return parts.join(" ")
+}
+
+export function buildDescriptionFromManual(input: ManualInput): string {
+  const parts: string[] = []
+
+  // Project type
+  const projectLabel = getProjectLabel(input.projectType)
+  parts.push(`${projectLabel}.`)
+
+  // Project category context (new build vs renovation vs replacement)
+  const category = PROJECT_CATEGORY[input.projectType] || "renovation"
+  const categoryContext = CATEGORY_CONTEXT[category]
+  if (categoryContext) {
+    parts.push(categoryContext)
+  }
+
+  // Selected scope items
+  if (input.scopeItems.length > 0) {
+    parts.push(`Selected scope of work: ${input.scopeItems.join(", ")}.`)
+  }
+
+  // Check for items in the typical scope NOT selected — mention them as excluded
+  const typicalScope = getTypicalScopeItems(input.projectType)
+  if (typicalScope.length > 0) {
+    const excluded = typicalScope.filter(
+      (item) => !input.scopeItems.some((s) => s.toLowerCase() === item.toLowerCase())
+    )
+    if (excluded.length > 0 && excluded.length < typicalScope.length) {
+      parts.push(`NOT included in scope: ${excluded.join(", ")}.`)
+    }
+  }
+
+  // Trades
+  if (input.trades.length > 0) {
+    parts.push(`Trades: ${input.trades.join(", ")}.`)
+  }
+
+  // Quality level with detail
+  const quality = getQualityInfo(input.qualityLevel)
+  parts.push(`Quality level: ${quality.label} (${quality.description.toLowerCase()}).`)
+
+  // Cost benchmark
+  const benchmark = getCostBenchmark(input.projectType, input.qualityLevel)
+  if (benchmark) {
+    parts.push(`Target cost range: ${benchmark} installed before markup.`)
+  }
+
+  // Project-specific expert guidance
+  const guidance = PROJECT_GUIDANCE[input.projectType]
+  if (guidance) {
+    parts.push(`Pro tips: ${guidance}`)
+  }
+
+  // Notes
+  if (input.notes?.trim()) {
+    parts.push(`Additional details from contractor: ${input.notes.trim()}`)
+  }
+
+  return parts.join(" ")
+}

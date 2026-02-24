@@ -1,0 +1,185 @@
+"use client"
+
+import { useState, useRef, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Spinner } from "@/components/ui/spinner"
+import { useToast } from "@/components/ui/toast"
+import {
+  Download,
+  FileText,
+  Palette,
+  BookOpen,
+  Lock,
+  ChevronDown,
+} from "lucide-react"
+import type { SubscriptionTier } from "@/generated/prisma/client"
+
+function tierAtLeast(userTier: SubscriptionTier, required: SubscriptionTier): boolean {
+  const order: SubscriptionTier[] = ["FREE", "STANDARD", "PRO", "MAX"]
+  return order.indexOf(userTier) >= order.indexOf(required)
+}
+
+interface ExportDropdownProps {
+  estimateId: string
+  userTier: SubscriptionTier
+}
+
+export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
+  const { toast } = useToast()
+  const [isOpen, setIsOpen] = useState(false)
+  const [isGeneratingProposal, setIsGeneratingProposal] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isOpen])
+
+  const canBranded = tierAtLeast(userTier, "PRO")
+  const canProposal = tierAtLeast(userTier, "MAX")
+
+  function handleStandardPdf() {
+    window.open(`/api/pdf/${estimateId}?type=standard`, "_blank")
+    setIsOpen(false)
+  }
+
+  function handleBrandedPdf() {
+    if (!canBranded) {
+      toast({
+        title: "Pro plan required",
+        description: "Upgrade to Pro to export branded PDFs with your logo and colors.",
+        variant: "warning",
+      })
+      return
+    }
+    window.open(`/api/pdf/${estimateId}?type=branded`, "_blank")
+    setIsOpen(false)
+  }
+
+  async function handleProposalPdf() {
+    if (!canProposal) {
+      toast({
+        title: "Max plan required",
+        description: "Upgrade to Max to generate full 7-page proposals.",
+        variant: "warning",
+      })
+      return
+    }
+    setIsGeneratingProposal(true)
+    setIsOpen(false)
+
+    try {
+      // Pre-generate proposal data
+      const res = await fetch("/api/ai/proposal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estimateId }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Failed to generate proposal")
+      }
+
+      // Open the proposal PDF
+      window.open(`/api/pdf/${estimateId}?type=proposal`, "_blank")
+    } catch (err) {
+      toast({
+        title: "Proposal generation failed",
+        description: err instanceof Error ? err.message : "Something went wrong",
+        variant: "error",
+      })
+    } finally {
+      setIsGeneratingProposal(false)
+    }
+  }
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={isGeneratingProposal}
+      >
+        {isGeneratingProposal ? (
+          <>
+            <Spinner size="sm" className="mr-1.5" />
+            Generating...
+          </>
+        ) : (
+          <>
+            <Download className="h-4 w-4 mr-1.5" />
+            Export
+            <ChevronDown className="h-3 w-3 ml-1" />
+          </>
+        )}
+      </Button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-64 bg-card border border-card-border rounded-xl shadow-lg z-20 py-1 animate-fade-in">
+          {/* Standard PDF */}
+          <button
+            onClick={handleStandardPdf}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left"
+          >
+            <FileText className="h-4 w-4 text-muted shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium">Standard PDF</p>
+              <p className="text-xs text-muted">Clean, unbranded estimate</p>
+            </div>
+          </button>
+
+          {/* Branded PDF */}
+          <button
+            onClick={handleBrandedPdf}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left"
+          >
+            <Palette className="h-4 w-4 text-brand-orange shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium flex items-center gap-2">
+                Branded PDF
+                {!canBranded && <Lock className="h-3 w-3 text-muted" />}
+              </p>
+              <p className="text-xs text-muted">With your logo & brand colors</p>
+            </div>
+            {!canBranded && (
+              <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                PRO
+              </Badge>
+            )}
+          </button>
+
+          {/* Full Proposal */}
+          <button
+            onClick={handleProposalPdf}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-card-border/20 transition-colors text-left"
+          >
+            <BookOpen className="h-4 w-4 text-brand-orange shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium flex items-center gap-2">
+                Full Proposal
+                {!canProposal && <Lock className="h-3 w-3 text-muted" />}
+              </p>
+              <p className="text-xs text-muted">7-page document with scope & timeline</p>
+            </div>
+            {!canProposal && (
+              <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                MAX
+              </Badge>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}

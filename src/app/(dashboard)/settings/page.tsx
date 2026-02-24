@@ -1,0 +1,29 @@
+import { auth } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { ProfileForm } from "@/components/settings/profile-form"
+
+export default async function SettingsPage() {
+  const session = await auth()
+  if (!session?.user?.id) return null
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      name: true,
+      email: true,
+      companyName: true,
+      phone: true,
+      address: true,
+      city: true,
+      state: true,
+      zip: true,
+      licenseNumber: true,
+      websiteUrl: true,
+      tagline: true,
+    },
+  })
+
+  if (!user) return null
+
+  return <ProfileForm user={user} />
+}

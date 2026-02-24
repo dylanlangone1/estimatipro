@@ -1,0 +1,493 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── NextAuth Models ───
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+
+  // Business info
+  companyName   String?
+  phone         String?
+  logoUrl       String?
+  websiteUrl    String?
+  licenseNumber String?
+  address       String?
+  city          String?
+  state         String?
+  zip           String?
+  tagline       String?
+  brandColors   Json?
+
+  // Subscription
+  tier                   SubscriptionTier @default(FREE)
+  stripeCustomerId       String?          @unique
+  stripeSubscriptionId   String?          @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+
+  // Trade specialization
+  trades             String[]
+  primaryTrade       String?
+  onboardingComplete Boolean @default(false)
+
+  // Estimate form preferences (auto-saved from guided/manual modes)
+  estimatePreferences Json?
+
+  // Relations
+  accounts         Account[]
+  sessions         Session[]
+  estimates        Estimate[]
+  clients          Client[]
+  uploadedDocs     UploadedDocument[]
+  pricingProfile   PricingProfile?
+  supplierInvoices SupplierInvoice[]
+  materialLibrary  MaterialPriceLibrary[]
+  trainingRules    TrainingRule[]
+  correctionLogs   CorrectionLog[]
+  contextRules     ContextRule[]
+  brandTemplates   BrandTemplate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// ─── Estimates ───
+
+model Estimate {
+  id          String         @id @default(cuid())
+  userId      String
+  clientId    String?
+  title       String
+  description String         @db.Text
+  projectType String?
+  status      EstimateStatus @default(DRAFT)
+
+  // Financials
+  subtotal      Float @default(0)
+  taxRate       Float @default(0)
+  taxAmount     Float @default(0)
+  markupPercent Float @default(0)
+  markupAmount  Float @default(0)
+  totalAmount   Float @default(0)
+
+  // Outcome tracking (Pro+)
+  outcome      EstimateOutcome?
+  outcomeNotes String?          @db.Text
+  actualCost   Float?
+
+  // AI metadata
+  aiGenerated     Boolean @default(true)
+  aiModel         String?
+  deviationAlerts Json?
+  confidenceScore Float?
+  assumptions     Json?
+  proposalData    Json?
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client      Client?       @relation(fields: [clientId], references: [id])
+  lineItems      LineItem[]
+  editHistory    EditHistory[]
+  correctionLogs CorrectionLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([userId, status])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model LineItem {
+  id          String @id @default(cuid())
+  estimateId  String
+  category    String
+  description String
+  quantity    Float
+  unit        String
+  unitCost    Float
+  totalCost   Float
+  sortOrder   Int    @default(0)
+
+  markupPercent Float?
+  laborCost     Float?
+  materialCost  Float?
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([estimateId])
+}
+
+// ─── Edit History ───
+
+model EditHistory {
+  id         String @id @default(cuid())
+  estimateId String
+  editPrompt String @db.Text
+  changesMade Json
+
+  previousData Json?
+  newData      Json?
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([estimateId])
+  @@index([estimateId, createdAt(sort: Desc)])
+}
+
+// ─── Clients (Pro+) ───
+
+model Client {
+  id      String  @id @default(cuid())
+  userId  String
+  name    String
+  email   String?
+  phone   String?
+  address String?
+  notes   String? @db.Text
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  estimates Estimate[]
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─── Uploaded Documents ───
+
+model UploadedDocument {
+  id       String @id @default(cuid())
+  userId   String
+  filename String
+  fileType String
+  fileUrl  String
+  fileSize Int
+
+  documentType       String?
+  parseStatus        ParseStatus @default(PENDING)
+  parsedData         Json?
+  parseErrors        String?     @db.Text
+  extractedLineItems Json?
+  extractedMarkups   Json?
+  extractedTotals    Json?
+  projectType        String?
+  estimateDate       DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([userId])
+}
+
+// ─── Pricing Profile (Pricing DNA) ───
+
+model PricingProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  profileData             Json
+  totalEstimatesAnalyzed  Int      @default(0)
+  totalDocumentsProcessed Int      @default(0)
+  totalMaterialsTracked   Int      @default(0)
+  totalInvoicesProcessed  Int      @default(0)
+  lastUpdated             DateTime @default(now())
+
+  categoryPatterns    Json?
+  avgOverallMarkup    Float?
+  avgLaborRate        Float?
+  typicalProjectTypes String[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Supplier Invoices ───
+
+model SupplierInvoice {
+  id     String @id @default(cuid())
+  userId String
+
+  filename     String
+  fileType     String
+  fileUrl      String
+  fileSize     Int
+  supplierName String?
+  invoiceDate  DateTime?
+  invoiceNumber String?
+  subtotal     Float?
+  taxAmount    Float?
+  totalAmount  Float?
+
+  parseStatus ParseStatus @default(PENDING)
+  parseErrors String?     @db.Text
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items SupplierItem[]
+
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([userId])
+}
+
+model SupplierItem {
+  id                String @id @default(cuid())
+  supplierInvoiceId String
+
+  itemDescription String
+  category        String?
+  sku             String?
+  quantity        Float   @default(1)
+  unit            String  @default("ea")
+  unitPrice       Float
+  totalPrice      Float
+
+  // Normalized fields for aggregation
+  normalizedName      String?
+  normalizedUnit      String?
+  normalizedUnitPrice Float?
+
+  supplierInvoice SupplierInvoice @relation(fields: [supplierInvoiceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([supplierInvoiceId])
+}
+
+// ─── Material Price Library ───
+
+model MaterialPriceLibrary {
+  id     String @id @default(cuid())
+  userId String
+
+  materialName String
+  category     String?
+  unit         String  @default("ea")
+
+  avgUnitPrice  Float
+  lastUnitPrice Float
+  minUnitPrice  Float
+  maxUnitPrice  Float
+  priceCount    Int     @default(1)
+  priceHistory  Json    @default("[]")
+  bestSupplier  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, materialName])
+  @@index([userId])
+  @@index([userId, priceCount(sort: Desc)])
+}
+
+// ─── Brand Templates (Pro+) ───
+
+model BrandTemplate {
+  id             String  @id @default(cuid())
+  userId         String
+  name           String  @default("Default")
+  isActive       Boolean @default(true)
+  templateConfig Json
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ─── Enums ───
+
+enum SubscriptionTier {
+  FREE
+  STANDARD
+  PRO
+  MAX
+}
+
+enum EstimateStatus {
+  DRAFT
+  SENT
+  WON
+  LOST
+  EXPIRED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum EstimateOutcome {
+  WON
+  LOST
+  NEGOTIATED
+  NO_RESPONSE
+}
+
+enum ParseStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ─── Training System Enums ───
+
+enum RulePriority {
+  CRITICAL
+  IMPORTANT
+  PREFERENCE
+}
+
+enum RuleSource {
+  MANUAL
+  AUTO_LEARNED
+  CORRECTION
+}
+
+enum CorrectionType {
+  PRICE_CHANGE
+  ITEM_ADDED
+  ITEM_REMOVED
+  QUANTITY_CHANGE
+  CATEGORY_CHANGE
+  DESCRIPTION_CHANGE
+  MARKUP_CHANGE
+  ASSUMPTION_CHANGE
+}
+
+enum TriggerType {
+  KEYWORD
+  CATEGORY
+  PROJECT_TYPE
+  ALWAYS
+}
+
+// ─── Training System Models ───
+
+model TrainingRule {
+  id              String       @id @default(cuid())
+  userId          String
+  content         String       @db.Text
+  category        String
+  priority        RulePriority @default(IMPORTANT)
+  source          RuleSource   @default(MANUAL)
+  isActive        Boolean      @default(true)
+  timesApplied    Int          @default(0)
+  correctionLogId String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, isActive])
+}
+
+model CorrectionLog {
+  id             String         @id @default(cuid())
+  userId         String
+  estimateId     String
+  correctionType CorrectionType
+  fieldPath      String
+  previousValue  String         @db.Text
+  newValue       String         @db.Text
+  context        String?        @db.Text
+  extractedRule  String?        @db.Text
+  similarCount   Int            @default(1)
+  promotedToRule Boolean        @default(false)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([estimateId])
+  @@index([userId, extractedRule])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model ContextRule {
+  id           String      @id @default(cuid())
+  userId       String?
+  triggerType  TriggerType
+  triggerValue String
+  mustInclude  String[]
+  mustExclude  String[]
+  mustAssume   String[]
+  neverAssume  String[]
+  isActive     Boolean     @default(true)
+  isDefault    Boolean     @default(false)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([triggerType, isActive])
+}
