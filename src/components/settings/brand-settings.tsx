@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { useToast } from "@/components/ui/toast"
-import { updateLogoUrl, updateBrandColors, saveTemplate } from "@/actions/settings-actions"
+import { updateBrandColors, saveTemplate } from "@/actions/settings-actions"
 import {
   Image as ImageIcon,
   Palette,
@@ -63,7 +63,7 @@ export function BrandSettings({ user, activeTemplate }: BrandSettingsProps) {
     }
 
     if (!file.type.startsWith("image/")) {
-      toast({ title: "Invalid file", description: "Please upload an image file", variant: "error" })
+      toast({ title: "Invalid file", description: "Please upload an image file (PNG, JPG, WEBP, or SVG)", variant: "error" })
       return
     }
 
@@ -72,13 +72,12 @@ export function BrandSettings({ user, activeTemplate }: BrandSettingsProps) {
       const formData = new FormData()
       formData.append("file", file)
 
-      const res = await fetch("/api/uploads", { method: "POST", body: formData })
-      if (!res.ok) throw new Error("Upload failed")
-
+      const res = await fetch("/api/settings/brand/logo", { method: "POST", body: formData })
       const data = await res.json()
-      const url = data.fileUrl || `/uploads/${data.filename}`
-      await updateLogoUrl(url)
-      setLogoUrl(url)
+
+      if (!res.ok) throw new Error(data.error || "Upload failed")
+
+      setLogoUrl(data.logoUrl)
       toast({ title: "Logo uploaded", variant: "success" })
     } catch (err) {
       toast({
