@@ -2,6 +2,7 @@ import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { SUPPLIER_INVOICE_PARSE_PROMPT } from "./prompts"
 import { supplierInvoiceResponseSchema } from "@/lib/validations"
 import { extractJson } from "./json-utils"
+import { withRetry, LIGHT_RETRY } from "./retry-utils"
 import type { z } from "zod/v4"
 
 export type SupplierInvoiceParseResult = z.infer<typeof supplierInvoiceResponseSchema>
@@ -49,12 +50,16 @@ export async function parseSupplierInvoice(
     ]
   }
 
-  const response = await anthropic.messages.create({
-    model: AI_MODEL,
-    max_tokens: 8192,
-    system: SUPPLIER_INVOICE_PARSE_PROMPT,
-    messages: [{ role: "user", content }],
-  })
+  const response = await withRetry(
+    "supplier-invoice-parse",
+    () => anthropic.messages.create({
+      model: AI_MODEL,
+      max_tokens: 8192,
+      system: SUPPLIER_INVOICE_PARSE_PROMPT,
+      messages: [{ role: "user", content }],
+    }),
+    LIGHT_RETRY,
+  )
 
   const textBlock = response.content.find((c) => c.type === "text")
   if (!textBlock || textBlock.type !== "text") {

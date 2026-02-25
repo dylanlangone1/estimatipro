@@ -2,6 +2,7 @@ import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { DOCUMENT_PARSE_SYSTEM_PROMPT } from "./prompts"
 import { fetchBlobBuffer, fetchBlobText } from "./blob-fetch"
 import { extractJson } from "./json-utils"
+import { withRetry, LIGHT_RETRY } from "./retry-utils"
 
 const fetchFileBuffer = fetchBlobBuffer
 const fetchFileText = fetchBlobText
@@ -38,12 +39,16 @@ export async function parseDocument(fileUrl: string, fileType: string) {
     ]
   }
 
-  const response = await anthropic.messages.create({
-    model: AI_MODEL,
-    max_tokens: 8192,
-    system: DOCUMENT_PARSE_SYSTEM_PROMPT,
-    messages: [{ role: "user", content }],
-  })
+  const response = await withRetry(
+    "document-parse",
+    () => anthropic.messages.create({
+      model: AI_MODEL,
+      max_tokens: 8192,
+      system: DOCUMENT_PARSE_SYSTEM_PROMPT,
+      messages: [{ role: "user", content }],
+    }),
+    LIGHT_RETRY,
+  )
 
   const textBlock = response.content.find((c) => c.type === "text")
   if (!textBlock || textBlock.type !== "text") {

@@ -8,6 +8,8 @@ import {
   Hammer,
   Sparkles,
   CheckCircle,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react"
 
 interface GenerationOverlayProps {
@@ -15,6 +17,9 @@ interface GenerationOverlayProps {
   isAiDone: boolean
   onComplete: () => void
   onCancel: () => void
+  onRetry?: () => void
+  generationError?: string | null
+  retryStatus?: "idle" | "retrying" | "failed"
   projectContext?: string
 }
 
@@ -178,6 +183,9 @@ export function GenerationOverlay({
   isAiDone,
   onComplete,
   onCancel,
+  onRetry,
+  generationError = null,
+  retryStatus = "idle",
   projectContext = "",
 }: GenerationOverlayProps) {
   const [progress, setProgress] = useState(0)
@@ -275,8 +283,44 @@ export function GenerationOverlay({
 
   if (!isVisible) return null
 
+  // ── Error state: overlay stays visible with retry/cancel options ──
+  if (generationError) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-charcoal/95 backdrop-blur-sm animate-fade-in">
+        <div className="max-w-lg w-full mx-4 text-center">
+          <div className="mb-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-500/20 mb-4">
+              <AlertCircle className="h-10 w-10 text-red-400" />
+            </div>
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-3">Generation Failed</h2>
+          <p className="text-sm text-white/60 mb-8 px-6">{generationError}</p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 rounded-lg bg-brand-orange hover:opacity-90 text-white font-semibold transition-opacity mb-4"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </button>
+          )}
+          <br />
+          <button
+            onClick={handleCancel}
+            className="text-sm text-white/30 hover:text-white/60 transition-colors mt-2"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const PhaseIcon = currentIcon.Icon
-  const phaseText = phases[phaseIndex] || "Building your estimate..."
+  // Show retrying message during client-side auto-retry
+  const phaseText = retryStatus === "retrying"
+    ? "AI is busy — trying again automatically..."
+    : phases[phaseIndex] || "Building your estimate..."
   const contextText = contextMessages[contextIndex] || ""
 
   return (

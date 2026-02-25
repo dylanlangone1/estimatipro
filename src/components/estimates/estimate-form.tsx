@@ -37,6 +37,8 @@ const MODE_TITLES: Record<InputMode, { heading: string; subheading: string }> = 
   },
 }
 
+const clientSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+
 export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -49,7 +51,10 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
   const [modeTransitioning, setModeTransitioning] = useState(false)
   const [location, setLocation] = useState("")
   const [projectContext, setProjectContext] = useState("")
+  const [generationError, setGenerationError] = useState<string | null>(null)
+  const [retryStatus, setRetryStatus] = useState<"idle" | "retrying" | "failed">("idle")
   const abortControllerRef = useRef<AbortController | null>(null)
+  const lastPayloadRef = useRef<(GenerateEstimatePayload & { location?: string }) | null>(null)
 
   // Switch mode with fade transition
   function switchMode(mode: InputMode) {
@@ -59,6 +64,53 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
       setActiveMode(mode)
       setModeTransitioning(false)
     }, 200)
+  }
+
+  // Inner fetch execution — supports one client-side auto-retry on 503 (overloaded)
+  async function executeGenerate(
+    payloadWithLocation: GenerateEstimatePayload & { location?: string },
+    isAutoRetry = false,
+  ) {
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
+    try {
+      const res = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadWithLocation),
+        signal: controller.signal,
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        const status = res.status
+
+        // Client auto-retry: one attempt after 503 (AI overloaded, all server retries exhausted)
+        if (status === 503 && !isAutoRetry) {
+          setRetryStatus("retrying")
+          await clientSleep(8000)
+          if (abortControllerRef.current?.signal.aborted) return
+          return executeGenerate(payloadWithLocation, true)
+        }
+
+        throw new Error(data.error || "Failed to generate estimate")
+      }
+
+      const data = await res.json()
+      setGeneratedId(data.id)
+      setIsAiDone(true)
+      setRetryStatus("idle")
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return
+      }
+      // Show persistent error state in overlay with retry button
+      setRetryStatus("failed")
+      setGenerationError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again.",
+      )
+    }
   }
 
   // Shared generate handler — works for all three modes
@@ -73,6 +125,8 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
     setIsAiDone(false)
     setGeneratedId(null)
     setError(null)
+    setGenerationError(null)
+    setRetryStatus("idle")
 
     // Capture project context for the loading overlay
     const ctx = payload.mode === "ai"
@@ -87,41 +141,9 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
       ...payload,
       ...(location.trim() ? { location: location.trim() } : {}),
     }
+    lastPayloadRef.current = payloadWithLocation
 
-    const controller = new AbortController()
-    abortControllerRef.current = controller
-
-    try {
-      const res = await fetch("/api/ai/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadWithLocation),
-        signal: controller.signal,
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || "Failed to generate estimate")
-      }
-
-      const data = await res.json()
-      setGeneratedId(data.id)
-      setIsAiDone(true)
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        return
-      }
-      toast({
-        title: "Generation failed",
-        description:
-          err instanceof Error
-            ? err.message
-            : "Something went wrong. Please try again.",
-        variant: "error",
-      })
-      setIsGenerating(false)
-      setIsAiDone(false)
-    }
+    await executeGenerate(payloadWithLocation)
   }
 
   const handleOverlayComplete = useCallback(() => {
@@ -135,6 +157,16 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
     setIsGenerating(false)
     setIsAiDone(false)
     setGeneratedId(null)
+    setGenerationError(null)
+    setRetryStatus("idle")
+  }
+
+  function handleOverlayRetry() {
+    if (!lastPayloadRef.current) return
+    setGenerationError(null)
+    setRetryStatus("idle")
+    setIsAiDone(false)
+    void executeGenerate(lastPayloadRef.current)
   }
 
   const { heading, subheading } = MODE_TITLES[activeMode]
@@ -205,6 +237,9 @@ export function EstimateForm({ trades = [], preferences }: EstimateFormProps) {
         isAiDone={isAiDone}
         onComplete={handleOverlayComplete}
         onCancel={handleOverlayCancel}
+        onRetry={handleOverlayRetry}
+        generationError={generationError}
+        retryStatus={retryStatus}
         projectContext={projectContext}
       />
     </div>

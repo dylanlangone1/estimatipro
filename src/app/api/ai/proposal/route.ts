@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { requireFeature } from "@/lib/tiers"
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
+import { withRetry, LIGHT_RETRY } from "@/lib/ai/retry-utils"
 import type { ProposalData } from "@/types/proposal"
 
 // Proposal generation via AI can take 30–60 s
@@ -143,13 +144,15 @@ ${estimate.client ? `Client: ${estimate.client.name}` : ""}`
     }
 
     // Generate full proposal
-    const response = await anthropic.messages.create({
-      model: AI_MODEL,
-      max_tokens: 4096,
-      messages: [
-        {
-          role: "user",
-          content: `Generate professional proposal content for a construction estimate.
+    const response = await withRetry(
+      "proposal-generate",
+      () => anthropic.messages.create({
+        model: AI_MODEL,
+        max_tokens: 4096,
+        messages: [
+          {
+            role: "user",
+            content: `Generate professional proposal content for a construction estimate.
 
 ${companyContext}
 
@@ -176,9 +179,11 @@ Guidelines:
 - terms: Comprehensive but standard. Include specific payment milestone percentages.
 - exclusions: Clear about what is NOT part of this scope.
 - warranty: Reassuring, professional, specific about coverage.`,
-        },
-      ],
-    })
+          },
+        ],
+      }),
+      LIGHT_RETRY,
+    )
 
     const text =
       response.content[0].type === "text" ? response.content[0].text : ""
@@ -352,11 +357,15 @@ Return ONLY a JSON object: {"warranty": "the text"}`,
     throw new Error(`Unknown section: ${section}`)
   }
 
-  const response = await anthropic.messages.create({
-    model: AI_MODEL,
-    max_tokens: 2048,
-    messages: [{ role: "user", content: prompt }],
-  })
+  const response = await withRetry(
+    `proposal-regenerate-${section}`,
+    () => anthropic.messages.create({
+      model: AI_MODEL,
+      max_tokens: 2048,
+      messages: [{ role: "user", content: prompt }],
+    }),
+    LIGHT_RETRY,
+  )
 
   const text = response.content[0].type === "text" ? response.content[0].text : ""
   const jsonMatch = text.match(/\{[\s\S]*\}/)

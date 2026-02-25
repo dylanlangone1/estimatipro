@@ -2,6 +2,7 @@ import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { DOCUMENT_CLASSIFY_PROMPT } from "./prompts"
 import { documentClassificationSchema } from "@/lib/validations"
 import { fetchBlobBuffer, fetchBlobText } from "./blob-fetch"
+import { withRetry, LIGHT_RETRY } from "./retry-utils"
 
 const fetchFileBuffer = fetchBlobBuffer
 const fetchFileText = fetchBlobText
@@ -44,12 +45,16 @@ export async function classifyDocument(
     ]
   }
 
-  const response = await anthropic.messages.create({
-    model: AI_MODEL,
-    max_tokens: 512,
-    system: DOCUMENT_CLASSIFY_PROMPT,
-    messages: [{ role: "user", content }],
-  })
+  const response = await withRetry(
+    "document-classify",
+    () => anthropic.messages.create({
+      model: AI_MODEL,
+      max_tokens: 512,
+      system: DOCUMENT_CLASSIFY_PROMPT,
+      messages: [{ role: "user", content }],
+    }),
+    LIGHT_RETRY,
+  )
 
   const textBlock = response.content.find((c) => c.type === "text")
   if (!textBlock || textBlock.type !== "text") {

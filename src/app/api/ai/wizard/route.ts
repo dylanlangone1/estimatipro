@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { requireFeature } from "@/lib/tiers"
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { rateLimit } from "@/lib/rate-limit"
+import { withRetry, LIGHT_RETRY } from "@/lib/ai/retry-utils"
 
 // AI wizard responses can take 15–30 s
 export const maxDuration = 300
@@ -92,21 +93,25 @@ LINE ITEMS BY CATEGORY:
 ${categoryBreakdown}
 `.trim()
 
-    const response = await anthropic.messages.create({
-      model: AI_MODEL,
-      max_tokens: 1024,
-      system: `You are an expert construction estimating advisor built into EstimAI Pro. You help contractors review estimates, suggest improvements, check pricing, and answer questions about their projects.
+    const response = await withRetry(
+      "wizard-advisor",
+      () => anthropic.messages.create({
+        model: AI_MODEL,
+        max_tokens: 1024,
+        system: `You are an expert construction estimating advisor built into EstimAI Pro. You help contractors review estimates, suggest improvements, check pricing, and answer questions about their projects.
 
 Be direct, actionable, and specific. Reference actual numbers from the estimate when relevant. Format your response with short paragraphs — no bullet lists unless the user specifically asks for one.
 
 Keep responses concise (2-4 paragraphs max). If you suggest changes, be specific about amounts and line items.`,
-      messages: [
-        {
-          role: "user",
-          content: `Here is the current estimate I'm working on:\n\n${estimateContext}\n\nMy question: ${question}`,
-        },
-      ],
-    })
+        messages: [
+          {
+            role: "user",
+            content: `Here is the current estimate I'm working on:\n\n${estimateContext}\n\nMy question: ${question}`,
+          },
+        ],
+      }),
+      LIGHT_RETRY,
+    )
 
     const text = response.content[0].type === "text" ? response.content[0].text : ""
 

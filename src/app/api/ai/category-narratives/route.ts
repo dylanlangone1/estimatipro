@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
+import { withRetry, LIGHT_RETRY } from "@/lib/ai/retry-utils"
 import type { CategoryNarrative, ProposalData } from "@/types/proposal"
 
 // AI narrative generation can take 20–45 s
@@ -71,13 +72,15 @@ export async function POST(req: Request) {
     ].filter(Boolean).join("\n")
 
     // AI call with rich context for specific, professional narratives
-    const response = await anthropic.messages.create({
-      model: AI_MODEL,
-      max_tokens: 1500,
-      messages: [
-        {
-          role: "user",
-          content: `You are writing professional scope-of-work descriptions for a client-facing construction estimate. For each category below, write a 2-3 sentence narrative that:
+    const response = await withRetry(
+      "category-narratives",
+      () => anthropic.messages.create({
+        model: AI_MODEL,
+        max_tokens: 1500,
+        messages: [
+          {
+            role: "user",
+            content: `You are writing professional scope-of-work descriptions for a client-facing construction estimate. For each category below, write a 2-3 sentence narrative that:
 - Describes the specific work to be performed
 - References actual materials, quantities, and methods from the line items
 - Sounds professional and confidence-inspiring for a homeowner or property manager
@@ -93,9 +96,11 @@ ${categorySummary}
 
 Return ONLY a JSON array, no other text:
 [{"category": "Category Name", "narrative": "Professional description referencing specific materials and scope."}]`,
-        },
-      ],
-    })
+          },
+        ],
+      }),
+      LIGHT_RETRY,
+    )
 
     const textBlock = response.content.find((c) => c.type === "text")
     if (!textBlock || textBlock.type !== "text") {
