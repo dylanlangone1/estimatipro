@@ -332,12 +332,19 @@ Return ONLY a JSON object:
           }],
         })
 
-        const text = response.content[0].type === "text" ? response.content[0].text : ""
-        const jsonMatch = text.match(/\{[\s\S]*\}/)
+        const textBlock = response.content.find((c) => c.type === "text")
+        if (!textBlock || textBlock.type !== "text") throw new Error("AI returned no text response for proposal")
+        const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/)
         if (!jsonMatch) throw new Error("Could not parse proposal")
 
         const existingData = (estimate.proposalData as unknown as Record<string, unknown>) || {}
-        proposalData = { ...existingData, ...JSON.parse(jsonMatch[0]), generatedAt: new Date().toISOString() } as unknown as ProposalData
+        let parsed: Record<string, unknown>
+        try {
+          parsed = JSON.parse(jsonMatch[0])
+        } catch {
+          throw new Error("AI returned malformed JSON for proposal")
+        }
+        proposalData = { ...existingData, ...parsed, generatedAt: new Date().toISOString() } as unknown as ProposalData
 
         await prisma.estimate.update({
           where: { id: estimate.id },

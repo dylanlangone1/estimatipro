@@ -97,13 +97,20 @@ Return ONLY a JSON array, no other text:
       ],
     })
 
-    const text = response.content[0].type === "text" ? response.content[0].text : ""
-    const jsonMatch = text.match(/\[[\s\S]*\]/)
+    const textBlock = response.content.find((c) => c.type === "text")
+    if (!textBlock || textBlock.type !== "text") {
+      throw new Error("AI returned no text response for narratives")
+    }
+    const jsonMatch = textBlock.text.match(/\[[\s\S]*\]/)
     if (!jsonMatch) {
       throw new Error("Could not parse narratives response")
     }
-
-    const categoryNarratives: CategoryNarrative[] = JSON.parse(jsonMatch[0])
+    let categoryNarratives: CategoryNarrative[]
+    try {
+      categoryNarratives = JSON.parse(jsonMatch[0])
+    } catch {
+      throw new Error("AI returned malformed JSON for narratives")
+    }
 
     // Merge into existing proposalData
     const updatedData = {

@@ -182,7 +182,7 @@ export async function POST(req: Request) {
           taxAmount: aiResponse.suggestedTax,
           totalAmount: aiResponse.totalAmount,
           aiGenerated: true,
-          aiModel: "claude-sonnet-4-20250514",
+          aiModel: "claude-sonnet-4-6",
           assumptions: JSON.parse(JSON.stringify(aiResponse.assumptions)),
           deviationAlerts: allAlerts.length > 0
             ? JSON.parse(JSON.stringify(allAlerts))
@@ -215,7 +215,7 @@ export async function POST(req: Request) {
 
     // Fire-and-forget: increment timesApplied on training rules that were used
     if (trainingContext.trainingRules.length > 0) {
-      prisma.trainingRule
+      void prisma.trainingRule
         .updateMany({
           where: {
             userId: session.user.id,
@@ -230,7 +230,7 @@ export async function POST(req: Request) {
 
     // Fire-and-forget: save preferences for guided/manual modes
     if (input.mode === "guided" || input.mode === "manual") {
-      prisma.user
+      void prisma.user
         .update({
           where: { id: session.user.id },
           data: {

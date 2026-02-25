@@ -156,7 +156,7 @@ export async function POST(req: Request) {
     })
 
     // Fire-and-forget: analyze correction and auto-learn
-    analyzeCorrectionAndLearn(
+    void analyzeCorrectionAndLearn(
       session.user.id,
       input.estimateId,
       previousData,

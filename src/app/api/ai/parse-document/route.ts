@@ -39,6 +39,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Not found" }, { status: 404 })
     }
 
+    // Guard against double-processing (e.g. rapid retries or concurrent requests)
+    if (doc.parseStatus === "PROCESSING") {
+      return NextResponse.json({ success: true, status: "already_processing" })
+    }
+
     // Step 1: Set status to PROCESSING
     await prisma.uploadedDocument.update({
       where: { id: documentId },
@@ -48,7 +53,7 @@ export async function POST(req: Request) {
     try {
       // Step 2: Classify the document
       const classification = await classifyDocument(doc.fileUrl, doc.fileType)
-      console.error(`Document ${documentId} classified as: ${classification.documentType} (${classification.confidence})`)
+      console.log(`Document ${documentId} classified as: ${classification.documentType} (${classification.confidence})`)
 
       // Step 3: Update document with classification
       await prisma.uploadedDocument.update({

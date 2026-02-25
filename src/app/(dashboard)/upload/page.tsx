@@ -105,7 +105,7 @@ export default function UploadPage() {
         const doc = await res.json()
 
         // Trigger parsing (fire-and-forget with error handling)
-        fetch("/api/ai/parse-document", {
+        void fetch("/api/ai/parse-document", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ documentId: doc.id }),

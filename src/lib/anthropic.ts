@@ -27,4 +27,4 @@ export const anthropic = {
   },
 } as unknown as Anthropic
 
-export const AI_MODEL = "claude-sonnet-4-20250514"
+export const AI_MODEL = "claude-sonnet-4-6"
