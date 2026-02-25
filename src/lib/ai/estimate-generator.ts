@@ -2,7 +2,7 @@ import { anthropic, AI_MODEL, AI_FALLBACK_MODEL } from "@/lib/anthropic"
 import { ESTIMATE_SYSTEM_PROMPT, buildEstimateUserPrompt } from "./prompts"
 import { estimateResponseSchema } from "@/lib/validations"
 import { extractJson } from "./json-utils"
-import { withRetry, isRetryableError } from "./retry-utils"
+import { withRetry } from "./retry-utils"
 import type { AIEstimateResponse } from "@/types/estimate"
 
 export async function generateEstimate(
@@ -17,22 +17,31 @@ export async function generateEstimate(
   const args = [description, pricingDna, trades, materialPrices, systemPrompt, qualityLevel, brandContext] as const
 
   try {
+    // Faster retry delays for estimates (users are actively waiting)
     const result = await withRetry("estimate-generator", () =>
-      runGeneration(AI_MODEL, ...args)
+      runGeneration(AI_MODEL, ...args),
+      { maxRetries: 2, delays: [1500, 5000] },
     )
     return { ...result, _modelUsed: AI_MODEL }
   } catch (primaryErr) {
-    if (isRetryableError(primaryErr)) {
-      // Sonnet retries exhausted — fall back to Haiku which has more available capacity
-      console.warn("[estimate-generator] Sonnet overloaded — falling back to Haiku")
+    // Unconditional fallback to Haiku for ANY primary model failure —
+    // not just retryable errors. This ensures users always get an estimate
+    // even if Sonnet has a rate limit, new error type, or model issue.
+    console.warn(
+      "[estimate-generator] Primary model failed — falling back to Haiku:",
+      primaryErr instanceof Error ? primaryErr.message.slice(0, 120) : String(primaryErr),
+    )
+    try {
       const result = await withRetry(
         "estimate-generator-haiku",
         () => runGeneration(AI_FALLBACK_MODEL, ...args),
-        { maxRetries: 2, delays: [2000, 5000] },
+        { maxRetries: 2, delays: [1000, 3000] },
       )
       return { ...result, _modelUsed: AI_FALLBACK_MODEL }
+    } catch (fallbackErr) {
+      console.error("[estimate-generator] Haiku fallback also failed:", fallbackErr)
+      throw primaryErr  // surface the original error for better diagnostics
     }
-    throw primaryErr
   }
 }
 
@@ -48,7 +57,7 @@ async function runGeneration(
 ): Promise<AIEstimateResponse> {
   const response = await anthropic.messages.stream({
     model,
-    max_tokens: 32000,
+    max_tokens: 16000,
     system: [
       {
         type: "text" as const,

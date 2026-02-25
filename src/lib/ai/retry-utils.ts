@@ -18,9 +18,9 @@ export function isRetryableError(err: unknown): boolean {
   if (err instanceof APIConnectionTimeoutError) return true
   if (err instanceof InternalServerError) return true
 
-  // HTTP status codes: 529 (overloaded), 502 (bad gateway), 503 (service unavailable)
+  // HTTP status codes: 429 (rate limit), 529 (overloaded), 502 (bad gateway), 503 (service unavailable)
   const status = (err as { status?: number }).status
-  if (status === 529 || status === 502 || status === 503) return true
+  if (status === 429 || status === 529 || status === 502 || status === 503) return true
 
   // String-based fallback for edge cases where errors aren't SDK typed
   const msg = ((err as { message?: string }).message ?? "").toLowerCase()

@@ -24,7 +24,7 @@ async function runEdit(
 ): Promise<EditResponse> {
   const response = await anthropic.messages.stream({
     model: AI_MODEL,
-    max_tokens: 32000,
+    max_tokens: 16000,
     system: [
       {
         type: "text" as const,
