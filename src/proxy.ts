@@ -14,7 +14,7 @@ const protectedPaths = [
   "/admin",
 ]
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Simple redirect-based protection
   // Full auth check happens in (dashboard)/layout.tsx server component
   // This middleware just handles the initial redirect for unauthenticated users
