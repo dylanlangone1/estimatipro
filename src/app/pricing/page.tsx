@@ -1,57 +1,64 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Check, ArrowLeft } from "lucide-react"
+import { CheckoutButton } from "@/components/checkout-button"
 
-const plans = [
-  {
-    name: "Standard",
-    price: 49,
-    annualPrice: 39,
-    description: "For contractors getting started with AI estimating",
-    features: [
-      "Unlimited AI estimates",
-      "Natural language editing",
-      "Document uploads (50/mo)",
-      "Pricing DNA learning",
-      "Deviation alerts",
-      "PDF export (unbranded)",
-    ],
-    cta: "Start Free Trial",
-  },
-  {
-    name: "Pro",
-    price: 99,
-    annualPrice: 79,
-    description: "For growing contractors who want branded output",
-    popular: true,
-    features: [
-      "Everything in Standard",
-      "Branded PDF estimates",
-      "Company logo on PDFs",
-      "Client management",
-      "Win/loss tracking",
-      "Unlimited uploads",
-    ],
-    cta: "Start Free Trial",
-  },
-  {
-    name: "Max",
-    price: 199,
-    annualPrice: 159,
-    description: "For established contractors who want it all",
-    features: [
-      "Everything in Pro",
-      "Full branded proposals",
-      "Plan & photo uploads",
-      "Website integration",
-      "Change order prediction",
-      "Priority support",
-    ],
-    cta: "Start Free Trial",
-  },
-]
+function getPlans() {
+  return [
+    {
+      name: "Standard",
+      price: 49,
+      annualPrice: 39,
+      description: "For contractors getting started with AI estimating",
+      priceId: process.env.STRIPE_STANDARD_PRICE_ID || "",
+      features: [
+        "Unlimited AI estimates",
+        "Natural language editing",
+        "Document uploads (50/mo)",
+        "Pricing DNA learning",
+        "Deviation alerts",
+        "PDF export (unbranded)",
+      ],
+      cta: "Start Free Trial",
+    },
+    {
+      name: "Pro",
+      price: 99,
+      annualPrice: 79,
+      description: "For growing contractors who want branded output",
+      popular: true,
+      priceId: process.env.STRIPE_PRO_PRICE_ID || "",
+      features: [
+        "Everything in Standard",
+        "Branded PDF estimates",
+        "Company logo on PDFs",
+        "Client management",
+        "Win/loss tracking",
+        "Unlimited uploads",
+      ],
+      cta: "Start Free Trial",
+    },
+    {
+      name: "Max",
+      price: 199,
+      annualPrice: 159,
+      description: "For established contractors who want it all",
+      priceId: process.env.STRIPE_MAX_PRICE_ID || "",
+      features: [
+        "Everything in Pro",
+        "Full branded proposals",
+        "Plan & photo uploads",
+        "Website integration",
+        "Change order prediction",
+        "Priority support",
+      ],
+      cta: "Start Free Trial",
+    },
+  ]
+}
 
 export default function PricingPage() {
+  const plans = getPlans()
   return (
     <div className="min-h-screen bg-brand-charcoal">
       {/* Nav */}
@@ -115,15 +122,14 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/register" className="block">
-                <Button
-                  variant={plan.popular ? "primary" : "outline"}
-                  size="lg"
-                  className={`w-full ${!plan.popular ? "bg-transparent border-white/20 text-white hover:bg-white/10" : ""}`}
-                >
-                  {plan.cta}
-                </Button>
-              </Link>
+              <CheckoutButton
+                priceId={plan.priceId}
+                variant={plan.popular ? "primary" : "outline"}
+                size="lg"
+                className={!plan.popular ? "bg-transparent border-white/20 text-white hover:bg-white/10" : ""}
+              >
+                {plan.cta}
+              </CheckoutButton>
             </div>
           ))}
         </div>
