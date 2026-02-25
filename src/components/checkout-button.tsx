@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 interface CheckoutButtonProps {
   priceId: string
   variant?: "primary" | "outline" | "ghost" | "danger" | "secondary"
-  size?: "sm" | "md" | "lg" | "icon"
+  size?: "sm" | "md" | "lg"
   className?: string
   children: React.ReactNode
 }
