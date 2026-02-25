@@ -1,6 +1,7 @@
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { DOCUMENT_PARSE_SYSTEM_PROMPT } from "./prompts"
 import { fetchBlobBuffer, fetchBlobText } from "./blob-fetch"
+import { extractJson } from "./json-utils"
 
 const fetchFileBuffer = fetchBlobBuffer
 const fetchFileText = fetchBlobText
@@ -49,10 +50,14 @@ export async function parseDocument(fileUrl: string, fileType: string) {
     throw new Error("No text response from AI")
   }
 
-  let jsonText = textBlock.text.trim()
-  if (jsonText.startsWith("```")) {
-    jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "")
-  }
+  const jsonText = extractJson(textBlock.text)
 
-  return JSON.parse(jsonText)
+  try {
+    return JSON.parse(jsonText)
+  } catch (parseErr) {
+    console.error("[document-parser] JSON.parse failed:", textBlock.text.slice(0, 300))
+    throw new Error(
+      `Document parsing failed: AI returned invalid JSON. ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`
+    )
+  }
 }

@@ -119,6 +119,14 @@ export async function POST(req: Request) {
       }
     }
   } catch (error) {
+    // Prisma "record not found" — user may have been deleted; acknowledge safely
+    if (
+      error instanceof Error &&
+      error.message.includes("Record to update not found")
+    ) {
+      console.warn(`[STRIPE WEBHOOK] User not found for event ${event.type} (${event.id}) — skipping`)
+      return new Response(null, { status: 200 })
+    }
     console.error(
       `[STRIPE WEBHOOK CRITICAL] Event ${event.type} (${event.id}) failed:`,
       error instanceof Error ? error.message : error

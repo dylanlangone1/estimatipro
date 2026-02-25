@@ -17,16 +17,24 @@ export function resolveUrl(fileUrl: string): string {
     : `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}${fileUrl}`
 }
 
+const BLOB_FETCH_TIMEOUT_MS = 30_000
+
 export async function fetchBlobBuffer(fileUrl: string): Promise<Buffer> {
   const url = resolveUrl(fileUrl)
-  const response = await fetch(url, { headers: blobHeaders(url) })
-  if (!response.ok) throw new Error(`Failed to fetch file: ${response.statusText}`)
+  const response = await fetch(url, {
+    headers: blobHeaders(url),
+    signal: AbortSignal.timeout(BLOB_FETCH_TIMEOUT_MS),
+  })
+  if (!response.ok) throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`)
   return Buffer.from(await response.arrayBuffer())
 }
 
 export async function fetchBlobText(fileUrl: string): Promise<string> {
   const url = resolveUrl(fileUrl)
-  const response = await fetch(url, { headers: blobHeaders(url) })
-  if (!response.ok) throw new Error(`Failed to fetch file: ${response.statusText}`)
+  const response = await fetch(url, {
+    headers: blobHeaders(url),
+    signal: AbortSignal.timeout(BLOB_FETCH_TIMEOUT_MS),
+  })
+  if (!response.ok) throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`)
   return response.text()
 }
