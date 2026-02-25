@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
     if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
-        const blob = await put(blobName, file, { access: "public" })
+        const blob = await put(blobName, file, { access: "private" })
         fileUrl = blob.url
       } catch (err) {
         console.error("Blob upload error:", err)

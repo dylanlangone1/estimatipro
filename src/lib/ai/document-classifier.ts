@@ -1,24 +1,10 @@
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { DOCUMENT_CLASSIFY_PROMPT } from "./prompts"
 import { documentClassificationSchema } from "@/lib/validations"
+import { fetchBlobBuffer, fetchBlobText } from "./blob-fetch"
 
-async function fetchFileBuffer(fileUrl: string): Promise<Buffer> {
-  const url = fileUrl.startsWith("http")
-    ? fileUrl
-    : `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}${fileUrl}`
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`Failed to fetch file: ${response.statusText}`)
-  return Buffer.from(await response.arrayBuffer())
-}
-
-async function fetchFileText(fileUrl: string): Promise<string> {
-  const url = fileUrl.startsWith("http")
-    ? fileUrl
-    : `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}${fileUrl}`
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`Failed to fetch file: ${response.statusText}`)
-  return response.text()
-}
+const fetchFileBuffer = fetchBlobBuffer
+const fetchFileText = fetchBlobText
 
 export async function classifyDocument(
   fileUrl: string,
