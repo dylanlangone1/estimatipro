@@ -313,67 +313,16 @@ export async function GET(
             colors: { primary: "#E94560", secondary: "#1A1A2E", accent: "#16213E", text: "#1F2937", background: "#FFFFFF" },
           }
 
-      // Get or generate proposal data
-      let proposalData = estimate.proposalData as unknown as ProposalData | null
+      // Proposal data must be pre-generated via /api/ai/proposal (proposal editor or export dropdown).
+      // The PDF route only renders — it does not call the AI directly.
+      const proposalData = estimate.proposalData as unknown as ProposalData | null
       const hasFullProposal = proposalData && "scopeOfWork" in proposalData && "aboutUs" in proposalData
 
       if (!hasFullProposal) {
-        const { anthropic, AI_MODEL } = await import("@/lib/anthropic")
-
-        const aiCategories: Record<string, Array<{ description: string; totalCost: number }>> = {}
-        for (const item of estimate.lineItems) {
-          if (!aiCategories[item.category]) aiCategories[item.category] = []
-          aiCategories[item.category].push({ description: item.description, totalCost: item.totalCost })
-        }
-
-        const categorySummary = Object.entries(aiCategories)
-          .map(([cat, items]) => `${cat}: ${items.map((i) => `${i.description} ($${i.totalCost.toFixed(2)})`).join(", ")}`)
-          .join("\n")
-
-        const response = await anthropic.messages.create({
-          model: AI_MODEL,
-          max_tokens: 4096,
-          messages: [{
-            role: "user",
-            content: `Generate professional proposal content for a construction estimate.
-
-Company: ${user.companyName || "Not provided"}
-Trades: ${user.trades.join(", ") || "General contractor"}
-Project: ${estimate.title}
-Description: ${cleanDescription(estimate.description)}
-Total: $${estimate.totalAmount.toFixed(2)}
-
-Line Items by Category:
-${categorySummary}
-
-Return ONLY a JSON object:
-{
-  "aboutUs": "2-3 paragraph about us",
-  "scopeOfWork": [{"category": "Name", "narrative": "Description"}],
-  "timeline": [{"phase": "Name", "duration": "X weeks", "description": "Details"}],
-  "terms": "Standard contractor terms paragraph"
-}`,
-          }],
-        })
-
-        const textBlock = response.content.find((c) => c.type === "text")
-        if (!textBlock || textBlock.type !== "text") throw new Error("AI returned no text response for proposal")
-        const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/)
-        if (!jsonMatch) throw new Error("Could not parse proposal")
-
-        const existingData = (estimate.proposalData as unknown as Record<string, unknown>) || {}
-        let parsed: Record<string, unknown>
-        try {
-          parsed = JSON.parse(jsonMatch[0])
-        } catch {
-          throw new Error("AI returned malformed JSON for proposal")
-        }
-        proposalData = { ...existingData, ...parsed, generatedAt: new Date().toISOString() } as unknown as ProposalData
-
-        await prisma.estimate.update({
-          where: { id: estimate.id },
-          data: { proposalData: JSON.parse(JSON.stringify(proposalData)) },
-        })
+        return NextResponse.json(
+          { error: "Proposal content not generated yet. Use Export → Full Proposal or open the proposal editor first." },
+          { status: 400 }
+        )
       }
 
       // Resolve structured terms for proposal
