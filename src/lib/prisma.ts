@@ -13,6 +13,7 @@ function createPrismaClient() {
     max: 5,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
+    ssl: { rejectUnauthorized: true },
   })
   globalForPrisma.pool = pool
   const adapter = new PrismaPg(pool)

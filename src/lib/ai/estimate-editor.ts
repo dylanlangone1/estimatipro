@@ -10,7 +10,7 @@ export async function editEstimate(
   pricingDna?: Record<string, unknown> | null,
   systemPrompt?: string,
 ): Promise<EditResponse> {
-  const response = await anthropic.messages.create({
+  const response = await anthropic.messages.stream({
     model: AI_MODEL,
     max_tokens: 32000,
     system: [
@@ -26,7 +26,7 @@ export async function editEstimate(
         content: buildEditUserPrompt(currentEstimate, editInstruction, pricingDna),
       },
     ],
-  })
+  }).finalMessage()
 
   if (response.stop_reason === "max_tokens") {
     throw new Error("AI response was too large and got cut off. Try a simpler edit or break it into smaller changes.")

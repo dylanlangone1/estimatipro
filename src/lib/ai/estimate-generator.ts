@@ -13,7 +13,7 @@ export async function generateEstimate(
   qualityLevel?: string,
   brandContext?: string,
 ): Promise<AIEstimateResponse> {
-  const response = await anthropic.messages.create({
+  const response = await anthropic.messages.stream({
     model: AI_MODEL,
     max_tokens: 32000,
     system: [
@@ -29,7 +29,7 @@ export async function generateEstimate(
         content: buildEstimateUserPrompt(description, pricingDna, trades, materialPrices, qualityLevel, brandContext),
       },
     ],
-  })
+  }).finalMessage()
 
   if (response.stop_reason === "max_tokens") {
     throw new Error("AI response was too large and got cut off. Try a more specific description or break the project into phases.")
