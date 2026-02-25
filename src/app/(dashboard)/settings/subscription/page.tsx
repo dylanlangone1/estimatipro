@@ -49,9 +49,14 @@ export default async function SubscriptionPage() {
                   {tierInfo.name}
                 </Badge>
                 {isTrialing && (
-                  <Badge variant="warning">
-                    Trial — {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left
-                  </Badge>
+                  <>
+                    <Badge variant="warning">
+                      Trial — {trialDaysLeft} day{trialDaysLeft !== 1 ? "s" : ""} left
+                    </Badge>
+                    <Badge variant="success">
+                      Full MAX access
+                    </Badge>
+                  </>
                 )}
                 {!isFreeTier && (
                   <span className="text-lg font-bold text-foreground">
@@ -61,13 +66,13 @@ export default async function SubscriptionPage() {
               </div>
               {isTrialing && user.stripeCurrentPeriodEnd && (
                 <p className="text-sm text-muted">
-                  Trial ends{" "}
+                  All MAX features unlocked during your trial. Trial ends{" "}
                   {new Date(user.stripeCurrentPeriodEnd).toLocaleDateString("en-US", {
                     month: "long",
                     day: "numeric",
                     year: "numeric",
                   })}{" "}
-                  — your card will be charged ${tierInfo.price} automatically
+                  — your card will be charged ${tierInfo.price}/mo automatically
                 </p>
               )}
               {!isTrialing && user.stripeCurrentPeriodEnd && (

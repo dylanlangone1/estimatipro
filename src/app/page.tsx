@@ -135,8 +135,8 @@ export default function LandingPage() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
-              { name: "Standard", price: "$49", features: ["Unlimited AI estimates", "Document uploads", "Pricing DNA", "PDF export"] },
-              { name: "Pro", price: "$99", popular: true, features: ["Everything in Standard", "Branded PDFs", "Client management", "Win/loss tracking"] },
+              { name: "Core", price: "$49", features: ["Unlimited AI estimates", "Document uploads", "Pricing DNA", "PDF export"] },
+              { name: "Pro", price: "$99", popular: true, features: ["Everything in Core", "Branded PDFs", "Client management", "Win/loss tracking"] },
               { name: "Max", price: "$199", features: ["Everything in Pro", "Full proposals", "Plan uploads", "Priority support"] },
             ].map((plan) => (
               <div

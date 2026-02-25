@@ -19,16 +19,19 @@ export default async function DashboardLayout({
   // Fetch user for onboarding check + tier for sidebar
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { onboardingComplete: true, tier: true, email: true },
+    select: { onboardingComplete: true, tier: true, email: true, subscriptionStatus: true },
   })
 
   if (user && !user.onboardingComplete) {
     redirect("/onboarding")
   }
 
+  // Grant MAX tier in sidebar during trial so all nav items unlock
+  const effectiveTier = user?.subscriptionStatus === "trialing" ? "MAX" : (user?.tier ?? "FREE")
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Sidebar userTier={user?.tier ?? "FREE"} userEmail={user?.email ?? ""} />
+      <Sidebar userTier={effectiveTier} userEmail={user?.email ?? ""} />
       <main className="lg:pl-64 flex-1">
         <div className="px-4 sm:px-6 lg:px-8 py-6 pt-16 lg:pt-6">
           <PWAInstallPrompt />

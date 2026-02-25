@@ -4,12 +4,15 @@ import type { SubscriptionTier } from "@/generated/prisma/client"
 
 /**
  * Fetch the user's current subscription tier from the database.
+ * Returns MAX during trial period so users can test all features.
  */
 export async function getUserTier(userId: string): Promise<SubscriptionTier> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { tier: true },
+    select: { tier: true, subscriptionStatus: true },
   })
+  // Grant full MAX access during trial so users can test every feature
+  if (user?.subscriptionStatus === "trialing") return "MAX"
   return user?.tier ?? "FREE"
 }
 

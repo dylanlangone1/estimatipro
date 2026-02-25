@@ -6,7 +6,7 @@ import { CheckoutButton } from "@/components/checkout-button"
 function getPlans() {
   return [
     {
-      name: "Standard",
+      name: "Core",
       price: 49,
       annualPrice: 39,
       description: "For contractors getting started with AI estimating",
@@ -29,7 +29,7 @@ function getPlans() {
       popular: true,
       priceId: process.env.STRIPE_PRO_PRICE_ID || "",
       features: [
-        "Everything in Standard",
+        "Everything in Core",
         "Branded PDF estimates",
         "Company logo on PDFs",
         "Client management",
@@ -87,7 +87,7 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-white/50 max-w-xl mx-auto">
-            Every plan includes a 7-day free trial. Card required — cancel anytime before trial ends.
+            Every plan includes a 7-day free trial with <span className="text-brand-orange font-medium">full MAX access</span> — try every feature. Card required, cancel anytime.
           </p>
         </div>
 

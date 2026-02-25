@@ -25,7 +25,7 @@ export const TIER_FEATURES = {
     logoWatermark: false,
   },
   STANDARD: {
-    name: "Standard",
+    name: "Core",
     price: 49,
     annualPrice: 39,
     estimatesPerMonth: Infinity,
