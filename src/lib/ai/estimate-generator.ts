@@ -15,7 +15,7 @@ export async function generateEstimate(
 ): Promise<AIEstimateResponse> {
   const response = await anthropic.messages.create({
     model: AI_MODEL,
-    max_tokens: 16000,
+    max_tokens: 32000,
     system: [
       {
         type: "text" as const,
