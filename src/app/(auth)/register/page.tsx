@@ -48,19 +48,27 @@ function RegisterForm() {
         return
       }
 
-      // Auto-sign in after registration
+      // Auto-sign in after registration.
+      // In NextAuth v5 beta, signIn with redirect:false may return an opaque
+      // redirect (result?.ok is falsy even on success). We navigate forward
+      // any time there is no explicit error — session cookie is already set.
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
+        callbackUrl: "/dashboard",
       })
 
       if (result?.error) {
-        setError("Account created but sign-in failed. Please go to login.")
+        // Auth failed despite just creating the account — send to login
+        setError("Account created! Please sign in to continue.")
         setLoading(false)
-      } else if (result?.ok) {
-        window.location.href = "/dashboard"
+        window.location.href = "/login?registered=true"
+        return
       }
+
+      // No error → session was set; navigate regardless of result?.ok value
+      window.location.href = "/dashboard"
     } catch {
       setError("Network error. Please try again.")
       setLoading(false)

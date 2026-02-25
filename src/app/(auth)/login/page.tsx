@@ -19,17 +19,26 @@ const errorMessages: Record<string, string> = {
   Configuration: "Server configuration error. Please contact support.",
 }
 
+const successMessages: Record<string, string> = {
+  registered: "Account created! Sign in below to get started.",
+}
+
 function LoginForm() {
   const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     const errorParam = searchParams.get("error")
     if (errorParam) {
       setError(errorMessages[errorParam] || errorMessages.Default)
+    }
+    const successParam = searchParams.get("registered")
+    if (successParam) {
+      setSuccess(successMessages.registered)
     }
   }, [searchParams])
 
@@ -71,6 +80,13 @@ function LoginForm() {
               Your Pricing Brain. Powered by AI.
             </p>
           </div>
+
+          {/* Success message */}
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm text-center">
+              {success}
+            </div>
+          )}
 
           {/* Error message */}
           {error && (
