@@ -19,12 +19,12 @@ export default async function EstimatePage({
     notFound()
   }
 
-  // Fetch user tier for export dropdown
+  // Fetch user tier + Stripe Connect status
   const session = await auth()
   const user = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { tier: true },
+        select: { tier: true, stripeConnectOnboarded: true },
       })
     : null
 
@@ -33,6 +33,7 @@ export default async function EstimatePage({
       estimate={estimate}
       isNew={isNewParam === "true"}
       userTier={user?.tier ?? "FREE"}
+      stripeConnected={user?.stripeConnectOnboarded ?? false}
     />
   )
 }

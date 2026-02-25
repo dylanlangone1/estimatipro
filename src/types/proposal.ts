@@ -19,6 +19,22 @@ export interface ProposalData {
   warranty?: string
   generatedAt: string
   categoryNarratives?: CategoryNarrative[]
+  // New fields for premium 10-page proposal
+  projectOverview?: string    // executive summary (Page 3)
+  investmentSummary?: string  // payment schedule narrative (Page 8)
+}
+
+export interface TimelinePhase {
+  phase: string
+  duration: string
+  description: string
+}
+
+export interface ProposalDefaults {
+  aboutUs?: string
+  timelineTemplate?: TimelinePhase[]
+  warranty?: string
+  exclusions?: string
 }
 
 export interface TemplateConfig {

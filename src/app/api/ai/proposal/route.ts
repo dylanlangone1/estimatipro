@@ -50,6 +50,7 @@ export async function POST(req: Request) {
             zip: true,
             trades: true,
             licenseNumber: true,
+            proposalDefaults: true,
           },
         },
         client: true,
@@ -62,7 +63,15 @@ export async function POST(req: Request) {
 
     const user = estimate.user
 
-    // Build context shared by full generation and section regeneration
+    // Load saved ProposalDefaults (user's saved templates)
+    const savedDefaults = user.proposalDefaults as {
+      aboutUs?: string
+      timelineTemplate?: Array<{ phase: string; duration: string; description: string }>
+      warranty?: string
+      exclusions?: string
+    } | null
+
+    // Build context shared by all generation paths
     const categories: Record<string, Array<{ description: string; totalCost: number }>> = {}
     for (const item of estimate.lineItems) {
       if (!categories[item.category]) categories[item.category] = []
@@ -88,6 +97,8 @@ Address: ${[user.address, user.city, user.state, user.zip].filter(Boolean).join(
     const projectContext = `Project: ${estimate.title}
 Description: ${estimate.description}
 Total: $${estimate.totalAmount.toFixed(2)}
+Subtotal: $${estimate.subtotal.toFixed(2)}
+Markup: ${estimate.markupPercent}%
 
 Line Items by Category:
 ${categorySummary}
@@ -102,7 +113,8 @@ ${estimate.client ? `Client: ${estimate.client.name}` : ""}`
         companyContext,
         projectContext,
         user,
-        estimate
+        estimate,
+        savedDefaults
       )
 
       // Merge regenerated section with existing data
@@ -114,6 +126,8 @@ ${estimate.client ? `Client: ${estimate.client.name}` : ""}`
         exclusions: existing?.exclusions || "",
         warranty: existing?.warranty || "",
         generatedAt: existing?.generatedAt || new Date().toISOString(),
+        projectOverview: existing?.projectOverview || "",
+        investmentSummary: existing?.investmentSummary || "",
         ...sectionData,
       }
 
@@ -128,6 +142,8 @@ ${estimate.client ? `Client: ${estimate.client.name}` : ""}`
         // Ensure new fields have defaults
         exclusions: data.exclusions || "",
         warranty: data.warranty || "",
+        projectOverview: data.projectOverview || "",
+        investmentSummary: data.investmentSummary || "",
         _estimateTitle: estimate.title,
         _hasClient: !!estimate.clientId,
       })
@@ -143,12 +159,32 @@ ${estimate.client ? `Client: ${estimate.client.name}` : ""}`
       }
     }
 
+    // Build default-aware instructions for the AI:
+    // When a section has a saved default, instruct AI to use it verbatim (or adapt minimally)
+    const aboutUsInstruction = savedDefaults?.aboutUs
+      ? `"aboutUs": "${savedDefaults.aboutUs.replace(/"/g, '\\"')}"  // USE THIS VERBATIM — do not change`
+      : `"aboutUs": "A 2-3 paragraph professional About Us for the company. Mention their specialties (${user.trades.join(", ")}), commitment to quality, safety, on-time delivery. Third person. 150-250 words."`
+
+    const timelineInstruction = savedDefaults?.timelineTemplate
+      ? `"timeline": [/* Adapt these saved phases to this specific project — keep phase names, adjust durations and descriptions to match this scope */
+${JSON.stringify(savedDefaults.timelineTemplate, null, 2)}
+]`
+      : `"timeline": [{"phase": "Phase Name", "duration": "X weeks", "description": "What happens"}]  // 4-6 phases`
+
+    const warrantyInstruction = savedDefaults?.warranty
+      ? `"warranty": "${savedDefaults.warranty.replace(/"/g, '\\"')}"  // USE THIS VERBATIM — do not change`
+      : `"warranty": "Workmanship warranty, manufacturer warranties, claim process, coverage. 100-150 words."`
+
+    const exclusionsInstruction = savedDefaults?.exclusions
+      ? `"exclusions": "${savedDefaults.exclusions.replace(/"/g, '\\"')}"  // USE THIS VERBATIM — do not change`
+      : `"exclusions": "Items NOT included in this estimate. Clear, 100-150 words."`
+
     // Generate full proposal
     const response = await withRetry(
       "proposal-generate",
       () => anthropic.messages.create({
         model: AI_MODEL,
-        max_tokens: 4096,
+        max_tokens: 6000,
         messages: [
           {
             role: "user",
@@ -160,25 +196,23 @@ ${projectContext}
 
 Return ONLY a JSON object with this exact structure, no other text:
 {
-  "aboutUs": "A 2-3 paragraph professional 'About Us' description for the company. Mention their specialties (${user.trades.join(", ")}), commitment to quality, safety record, and what sets them apart. Write in third person. Make it compelling but realistic. 150-250 words.",
+  ${aboutUsInstruction},
   "scopeOfWork": [
-    {"category": "Category Name", "narrative": "A detailed paragraph describing the work in this category, referencing specific items and explaining the approach, materials, and methodology. 50-100 words each."}
+    {"category": "Category Name", "narrative": "Detailed paragraph for each category from the estimate. 50-100 words each."}
   ],
-  "timeline": [
-    {"phase": "Phase Name", "duration": "X weeks", "description": "What happens during this phase"}
-  ],
-  "terms": "Standard contractor terms and conditions including: payment schedule (10% deposit upon signing, 30% at rough-in completion, 30% at finish work completion, 30% upon final walkthrough and approval), change order policy (written approval required, priced at cost + markup), warranty (1-year workmanship warranty from date of substantial completion), liability limitations, permit responsibilities, cleanup and disposal, and cancellation terms. Write as a cohesive paragraph-style document. 200-300 words.",
-  "exclusions": "Items specifically NOT included in this estimate. List common exclusions relevant to this project type such as: furniture/fixtures not specified, landscaping beyond project footprint, hazardous material testing/abatement, architectural/engineering fees (if not included), utility company fees, HOA approvals, etc. Write as a clear, bulleted-style paragraph. 100-150 words.",
-  "warranty": "Detailed warranty information covering: workmanship warranty period and terms, manufacturer material warranties (passed through), warranty claim process, what is and isn't covered, emergency repair provisions. Professional and reassuring tone. 100-150 words."
+  ${timelineInstruction},
+  "terms": "Standard contractor terms: payment schedule (10% deposit, 30% rough-in, 30% finish, 30% completion), change order policy, warranty, liability, permits, cleanup, cancellation. 200-300 words.",
+  ${exclusionsInstruction},
+  ${warrantyInstruction},
+  "projectOverview": "A 2-3 paragraph executive summary of this specific project. What the client will receive, the value delivered, key highlights. Reference the total investment and scope. 150-200 words.",
+  "investmentSummary": "A 2-paragraph narrative about the investment and suggested payment schedule. First paragraph: value delivered for the investment. Second paragraph: describe the suggested 30/40/30 payment structure and what triggers each milestone. Professional and reassuring. 100-150 words."
 }
 
 Guidelines:
-- aboutUs: Professional tone, 150-250 words. Highlight the trades and specialties. Mention commitment to on-time, on-budget delivery.
 - scopeOfWork: One entry per category from the estimate. Each narrative 50-100 words.
-- timeline: 4-6 phases that logically flow. Durations realistic for the project scope and total.
-- terms: Comprehensive but standard. Include specific payment milestone percentages.
-- exclusions: Clear about what is NOT part of this scope.
-- warranty: Reassuring, professional, specific about coverage.`,
+- projectOverview: Project-specific executive summary — unique to this job.
+- investmentSummary: Reference the specific total ($${estimate.totalAmount.toFixed(2)}) and payment milestones.
+- For sections marked "USE THIS VERBATIM" — copy them exactly, character for character.`,
           },
         ],
       }),
@@ -192,19 +226,26 @@ Guidelines:
       throw new Error("Could not parse proposal response")
     }
 
-    const aiGenerated = JSON.parse(jsonMatch[0])
+    let aiGenerated: Record<string, unknown>
+    try {
+      aiGenerated = JSON.parse(jsonMatch[0])
+    } catch {
+      throw new Error("AI returned malformed JSON for proposal")
+    }
 
     // Override with client defaults if available (aboutUs and terms carry forward)
     const proposalData: ProposalData = {
-      ...aiGenerated,
+      ...(aiGenerated as unknown as ProposalData),
       ...(clientDefaults.aboutUs ? { aboutUs: clientDefaults.aboutUs } : {}),
       ...(clientDefaults.terms ? { terms: clientDefaults.terms } : {}),
       generatedAt: new Date().toISOString(),
     }
 
-    // Ensure new fields have defaults
+    // Ensure all fields have defaults
     if (!proposalData.exclusions) proposalData.exclusions = ""
     if (!proposalData.warranty) proposalData.warranty = ""
+    if (!proposalData.projectOverview) proposalData.projectOverview = ""
+    if (!proposalData.investmentSummary) proposalData.investmentSummary = ""
 
     // Save to estimate
     await prisma.estimate.update({
@@ -297,14 +338,22 @@ async function regenerateProposalSection(
   companyContext: string,
   projectContext: string,
   user: { trades: string[]; companyName: string | null; licenseNumber: string | null },
-  estimate: { title: string; totalAmount: number }
+  estimate: { title: string; totalAmount: number },
+  savedDefaults: {
+    aboutUs?: string
+    timelineTemplate?: Array<{ phase: string; duration: string; description: string }>
+    warranty?: string
+    exclusions?: string
+  } | null
 ): Promise<Partial<ProposalData>> {
   const sectionPrompts: Record<string, string> = {
-    aboutUs: `Generate a professional 'About Us' section for a construction company proposal.
+    aboutUs: savedDefaults?.aboutUs
+      ? `Return ONLY this JSON object verbatim: {"aboutUs": ${JSON.stringify(savedDefaults.aboutUs)}}`
+      : `Generate a professional 'About Us' section for a construction company proposal.
 
 ${companyContext}
 
-Write 2-3 paragraphs (150-250 words) in third person. Mention their specialties (${user.trades.join(", ")}), commitment to quality, safety, and on-time delivery. Make it compelling but realistic.
+Write 2-3 paragraphs (150-250 words) in third person. Mention their specialties (${user.trades.join(", ")}), commitment to quality, safety, on-time delivery.
 
 Return ONLY a JSON object: {"aboutUs": "the text"}`,
 
@@ -318,7 +367,16 @@ Write one narrative paragraph (50-100 words) per category from the line items. E
 
 Return ONLY a JSON object: {"scopeOfWork": [{"category": "Name", "narrative": "Description"}]}`,
 
-    timeline: `Generate a realistic project timeline for a construction proposal.
+    timeline: savedDefaults?.timelineTemplate
+      ? `Adapt these saved timeline phases for this specific project. Keep the phase names and structure but adjust durations and descriptions to fit the project scope.
+
+${projectContext}
+
+Saved phases to adapt:
+${JSON.stringify(savedDefaults.timelineTemplate, null, 2)}
+
+Return ONLY a JSON object: {"timeline": [{"phase": "Name", "duration": "X weeks", "description": "Details"}]}`
+      : `Generate a realistic project timeline for a construction proposal.
 
 ${projectContext}
 
@@ -335,7 +393,9 @@ Include: payment schedule (10% deposit, 30% rough-in, 30% finish, 30% completion
 
 Return ONLY a JSON object: {"terms": "the text"}`,
 
-    exclusions: `Generate a professional exclusions section for a construction proposal.
+    exclusions: savedDefaults?.exclusions
+      ? `Return ONLY this JSON object verbatim: {"exclusions": ${JSON.stringify(savedDefaults.exclusions)}}`
+      : `Generate a professional exclusions section for a construction proposal.
 
 ${projectContext}
 
@@ -343,13 +403,34 @@ List items NOT included in this estimate. Common exclusions for this project typ
 
 Return ONLY a JSON object: {"exclusions": "the text"}`,
 
-    warranty: `Generate a warranty section for a construction proposal.
+    warranty: savedDefaults?.warranty
+      ? `Return ONLY this JSON object verbatim: {"warranty": ${JSON.stringify(savedDefaults.warranty)}}`
+      : `Generate a warranty section for a construction proposal.
 
 Company: ${user.companyName || "Not provided"}
 
 Cover: workmanship warranty period, manufacturer warranties (passed through), claim process, coverage details, emergency repairs. Professional and reassuring, 100-150 words.
 
 Return ONLY a JSON object: {"warranty": "the text"}`,
+
+    projectOverview: `Generate a project overview (executive summary) for a construction proposal.
+
+${companyContext}
+
+${projectContext}
+
+Write 2-3 paragraphs (150-200 words). What the client will receive, the value delivered, key highlights. Reference the total investment.
+
+Return ONLY a JSON object: {"projectOverview": "the text"}`,
+
+    investmentSummary: `Generate an investment summary section for a construction proposal.
+
+Project: ${estimate.title}
+Total: $${estimate.totalAmount.toFixed(2)}
+
+Write 2 paragraphs (100-150 words total). First: value delivered for the investment. Second: the suggested 30/40/30 payment structure and what triggers each milestone. Professional and reassuring.
+
+Return ONLY a JSON object: {"investmentSummary": "the text"}`,
   }
 
   const prompt = sectionPrompts[section]

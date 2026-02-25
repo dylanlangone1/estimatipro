@@ -47,6 +47,23 @@ async function fetchLogoAsBase64(url: string): Promise<string | null> {
 }
 
 /**
+ * Generate a sequential invoice number from an estimate.
+ * Format: INV-YYYY-NNN (zero-padded to 3 digits).
+ */
+function generateInvoiceNumber(estimateId: string, createdAt: Date): string {
+  const year = createdAt.getFullYear()
+  // Use last 3 hex chars of ID as a short sequential-ish number
+  const num = parseInt(estimateId.slice(-3), 16) % 999 + 1
+  return `INV-${year}-${num.toString().padStart(3, "0")}`
+}
+
+/** Mask an account number — show only last 4 digits. */
+function maskAccount(account: string): string {
+  if (account.length <= 4) return account
+  return "****" + account.slice(-4)
+}
+
+/**
  * Resolve terms for a given estimate/user.
  * Priority: per-estimate override > user defaults > hardcoded fallback.
  */
@@ -104,6 +121,13 @@ export async function GET(
             tier: true,
             tagline: true,
             trades: true,
+            // Payment & invoice settings (MAX tier)
+            bankName: true,
+            bankRoutingNumber: true,
+            bankAccountNumber: true,
+            proposalLogoWatermark: true,
+            invoicePaymentDays: true,
+            stripeConnectOnboarded: true,
           },
         },
         client: true,
@@ -355,6 +379,31 @@ Return ONLY a JSON object:
       // Resolve structured terms for proposal
       const termsStructured = await resolveTerms(session.user.id, estimate.proposalData)
 
+      // Fetch project photo as base64 (same helper used for logo)
+      const projectPhotoBase64 = estimate.projectPhotoUrl
+        ? await fetchLogoAsBase64(estimate.projectPhotoUrl) ?? undefined
+        : undefined
+
+      // Build invoice details
+      const resolvedInvoiceNumber =
+        estimate.invoiceNumber || generateInvoiceNumber(estimate.id, estimate.createdAt)
+
+      const resolvedDueDate = estimate.invoiceDueDate
+        ? estimate.invoiceDueDate.toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })
+        : (() => {
+            const d = new Date(estimate.createdAt)
+            d.setDate(d.getDate() + (user.invoicePaymentDays ?? 30))
+            return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+          })()
+
+      const maskedAccount = user.bankAccountNumber
+        ? maskAccount(user.bankAccountNumber)
+        : undefined
+
       pdfElement = React.createElement(ProposalPDF, {
         title: estimate.title,
         description: cleanDescription(estimate.description),
@@ -377,6 +426,15 @@ Return ONLY a JSON object:
         proposalData: proposalData!,
         termsStructured,
         isContract: estimate.isContract,
+        // New MAX-tier props
+        projectPhotoUrl: projectPhotoBase64,
+        showLogoWatermark: user.proposalLogoWatermark ?? false,
+        invoiceNumber: resolvedInvoiceNumber,
+        invoiceDueDate: resolvedDueDate,
+        bankName: user.bankName || undefined,
+        bankRouting: user.bankRoutingNumber || undefined,
+        bankAccount: maskedAccount,
+        stripePaymentLink: estimate.stripePaymentLink || undefined,
       })
     } else {
       // Standard PDF — available to all tiers

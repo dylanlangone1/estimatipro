@@ -143,6 +143,10 @@ export default async function SubscriptionPage() {
                   { label: "Win/Loss Tracking", key: "winLossTracking" as const },
                   { label: "Client Management", key: "clientManagement" as const },
                   { label: "Full Proposals", key: "fullProposals" as const },
+                  { label: "Client Invoices", key: "clientInvoices" as const },
+                  { label: "Online Payments (Stripe)", key: "stripeConnect" as const },
+                  { label: "Saved Proposal Templates", key: "proposalDefaults" as const },
+                  { label: "Project Photo on Cover", key: "projectPhotoProposal" as const },
                 ].map((feature) => (
                   <tr
                     key={feature.key}

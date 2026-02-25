@@ -18,6 +18,11 @@ export const TIER_FEATURES = {
     editableTerms: false,
     includeTerms: false,
     contractMode: false,
+    clientInvoices: false,
+    stripeConnect: false,
+    proposalDefaults: false,
+    projectPhotoProposal: false,
+    logoWatermark: false,
   },
   STANDARD: {
     name: "Standard",
@@ -39,6 +44,11 @@ export const TIER_FEATURES = {
     editableTerms: true,
     includeTerms: true,
     contractMode: false,
+    clientInvoices: false,
+    stripeConnect: false,
+    proposalDefaults: false,
+    projectPhotoProposal: false,
+    logoWatermark: false,
   },
   PRO: {
     name: "Pro",
@@ -60,6 +70,11 @@ export const TIER_FEATURES = {
     editableTerms: true,
     includeTerms: true,
     contractMode: true,
+    clientInvoices: false,
+    stripeConnect: false,
+    proposalDefaults: false,
+    projectPhotoProposal: false,
+    logoWatermark: false,
   },
   MAX: {
     name: "Max",
@@ -81,6 +96,11 @@ export const TIER_FEATURES = {
     editableTerms: true,
     includeTerms: true,
     contractMode: true,
+    clientInvoices: true,       // generate client invoices from estimates
+    stripeConnect: true,         // accept card payments via Stripe Connect
+    proposalDefaults: true,      // saved proposal templates (About Us, timeline, warranty)
+    projectPhotoProposal: true,  // project photo on proposal cover page
+    logoWatermark: true,         // logo watermark on proposal pages
   },
 } as const
 

@@ -31,6 +31,7 @@ import {
 import Link from "next/link"
 import { QuickTeachButton } from "@/components/training/quick-teach-button"
 import { ExportDropdown } from "@/components/estimates/export-dropdown"
+import { EstimateMaxActions } from "@/components/estimates/estimate-max-actions"
 import type { DeviationAlert } from "@/types/estimate"
 import type { JsonValue } from "@prisma/client/runtime/client"
 import type { SubscriptionTier } from "@/generated/prisma/client"
@@ -53,6 +54,9 @@ interface EstimateWithRelations {
   isContract: boolean
   createdAt: Date
   updatedAt: Date
+  // MAX tier fields
+  projectPhotoUrl?: string | null
+  stripePaymentLink?: string | null
   lineItems: Array<{
     id: string
     category: string
@@ -88,9 +92,10 @@ interface EstimateViewProps {
   estimate: EstimateWithRelations
   isNew?: boolean
   userTier?: SubscriptionTier
+  stripeConnected?: boolean
 }
 
-export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: EstimateViewProps) {
+export function EstimateView({ estimate, isNew = false, userTier = "FREE", stripeConnected = false }: EstimateViewProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
@@ -114,6 +119,7 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
   const descTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const canContract = userTier === "PRO" || userTier === "MAX"
+  const isMax = userTier === "MAX"
 
   const toggleContract = useCallback(async () => {
     const newValue = !isContract
@@ -303,6 +309,14 @@ export function EstimateView({ estimate, isNew = false, userTier = "FREE" }: Est
                 {isContract ? "Contract" : "Estimate"}
               </span>
             </button>
+          )}
+          {isMax && (
+            <EstimateMaxActions
+              estimateId={estimate.id}
+              projectPhotoUrl={estimate.projectPhotoUrl ?? null}
+              stripePaymentLink={estimate.stripePaymentLink ?? null}
+              stripeConnected={stripeConnected}
+            />
           )}
           <QuickTeachButton estimateId={estimate.id} />
           <ExportDropdown estimateId={estimate.id} userTier={userTier} />

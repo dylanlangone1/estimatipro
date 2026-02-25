@@ -205,7 +205,7 @@ export function Sidebar({ userTier = "FREE", userEmail = "" }: SidebarProps) {
                     ? "Unlock Pricing DNA, uploads & more"
                     : nextTier === "PRO"
                       ? "Branded PDFs, client management"
-                      : "Full proposals & all features"}
+                      : "Invoices, payments & premium proposals"}
                 </p>
               </div>
             </Link>

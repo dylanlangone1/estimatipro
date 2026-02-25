@@ -113,7 +113,7 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
     if (!canProposal) {
       toast({
         title: "Max plan required",
-        description: "Upgrade to Max to generate full 7-page proposals.",
+        description: "Upgrade to Max to generate premium 10-page proposals with invoice.",
         variant: "warning",
       })
       return
@@ -235,7 +235,7 @@ export function ExportDropdown({ estimateId, userTier }: ExportDropdownProps) {
                 Full Proposal
                 {!canProposal && <Lock className="h-3 w-3 text-muted" />}
               </p>
-              <p className="text-xs text-muted">7-page document with scope &amp; timeline</p>
+              <p className="text-xs text-muted">10-page premium proposal with invoice &amp; cover photo</p>
             </div>
             {!canProposal && (
               <Badge variant="default" className="text-[10px] px-1.5 py-0">

@@ -14,19 +14,39 @@ import {
   Plus,
   Trash2,
   FileText,
+  Bookmark,
+  CheckCircle2,
 } from "lucide-react"
 import type { ProposalData } from "@/types/proposal"
 
-type ProposalSection = "aboutUs" | "scopeOfWork" | "timeline" | "terms" | "exclusions" | "warranty"
+type ProposalSection =
+  | "aboutUs"
+  | "projectOverview"
+  | "scopeOfWork"
+  | "timeline"
+  | "investmentSummary"
+  | "terms"
+  | "exclusions"
+  | "warranty"
 
-const SECTIONS: { key: ProposalSection; label: string; icon: string }[] = [
-  { key: "aboutUs", label: "About Us", icon: "🏢" },
+const SECTIONS: { key: ProposalSection; label: string; icon: string; canSaveAsDefault?: boolean }[] = [
+  { key: "aboutUs", label: "About Us", icon: "🏢", canSaveAsDefault: true },
+  { key: "projectOverview", label: "Project Overview", icon: "📝" },
   { key: "scopeOfWork", label: "Scope of Work", icon: "📋" },
-  { key: "timeline", label: "Timeline", icon: "📅" },
+  { key: "timeline", label: "Timeline", icon: "📅", canSaveAsDefault: true },
+  { key: "investmentSummary", label: "Investment Summary", icon: "💰" },
   { key: "terms", label: "Terms & Conditions", icon: "📄" },
-  { key: "exclusions", label: "Exclusions", icon: "🚫" },
-  { key: "warranty", label: "Warranty", icon: "🛡️" },
+  { key: "exclusions", label: "Exclusions", icon: "🚫", canSaveAsDefault: true },
+  { key: "warranty", label: "Warranty", icon: "🛡️", canSaveAsDefault: true },
 ]
+
+// Map section key to ProposalDefaults field name
+const DEFAULTS_FIELD_MAP: Partial<Record<ProposalSection, string>> = {
+  aboutUs: "aboutUs",
+  timeline: "timelineTemplate",
+  warranty: "warranty",
+  exclusions: "exclusions",
+}
 
 export default function ProposalEditorPage() {
   const params = useParams()
@@ -40,6 +60,8 @@ export default function ProposalEditorPage() {
   const [saveAsClientDefault, setSaveAsClientDefault] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingDefault, setSavingDefault] = useState<ProposalSection | null>(null)
+  const [savedDefaults, setSavedDefaults] = useState<Set<ProposalSection>>(new Set())
   const [regenerating, setRegenerating] = useState<ProposalSection | null>(null)
   const [activeSection, setActiveSection] = useState<ProposalSection>("aboutUs")
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -60,7 +82,6 @@ export default function ProposalEditorPage() {
       }
 
       const data = await res.json()
-      // Ensure new fields exist with defaults
       setProposal({
         aboutUs: data.aboutUs || "",
         scopeOfWork: data.scopeOfWork || [],
@@ -69,6 +90,8 @@ export default function ProposalEditorPage() {
         exclusions: data.exclusions || "",
         warranty: data.warranty || "",
         generatedAt: data.generatedAt || new Date().toISOString(),
+        projectOverview: data.projectOverview || "",
+        investmentSummary: data.investmentSummary || "",
       })
       setEstimateTitle(data._estimateTitle || "")
       setHasClient(!!data._hasClient)
@@ -121,6 +144,49 @@ export default function ProposalEditorPage() {
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Save a section as user default (reusable across all proposals)
+  async function handleSaveAsDefault(section: ProposalSection) {
+    if (!proposal) return
+    const fieldName = DEFAULTS_FIELD_MAP[section]
+    if (!fieldName) return
+
+    let value: unknown
+    if (section === "timeline") {
+      value = proposal.timeline
+    } else {
+      value = proposal[section as keyof ProposalData]
+    }
+
+    setSavingDefault(section)
+    try {
+      const res = await fetch("/api/settings/proposal-defaults", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [fieldName]: value }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Failed to save default")
+      }
+
+      setSavedDefaults((prev) => new Set([...prev, section]))
+      toast({
+        title: "Saved as your default",
+        description: `This ${SECTIONS.find((s) => s.key === section)?.label} will be pre-filled for future proposals.`,
+        variant: "success",
+      })
+    } catch (err) {
+      toast({
+        title: "Failed to save default",
+        description: err instanceof Error ? err.message : "Something went wrong",
+        variant: "error",
+      })
+    } finally {
+      setSavingDefault(null)
     }
   }
 
@@ -209,6 +275,8 @@ export default function ProposalEditorPage() {
     )
   }
 
+  const currentSectionMeta = SECTIONS.find((s) => s.key === activeSection)
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Top Bar */}
@@ -285,7 +353,10 @@ export default function ProposalEditorPage() {
                 }`}
               >
                 <span>{section.icon}</span>
-                <span>{section.label}</span>
+                <span className="flex-1">{section.label}</span>
+                {section.canSaveAsDefault && savedDefaults.has(section.key) && (
+                  <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
+                )}
               </button>
             ))}
           </nav>
@@ -297,27 +368,57 @@ export default function ProposalEditorPage() {
             {/* Section Header */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-foreground">
-                {SECTIONS.find((s) => s.key === activeSection)?.icon}{" "}
-                {SECTIONS.find((s) => s.key === activeSection)?.label}
+                {currentSectionMeta?.icon}{" "}
+                {currentSectionMeta?.label}
               </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleRegenerate(activeSection)}
-                disabled={regenerating !== null}
-              >
-                {regenerating === activeSection ? (
-                  <>
-                    <Spinner size="sm" className="mr-1.5" />
-                    Regenerating...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-1.5" />
-                    Regenerate with AI
-                  </>
+              <div className="flex items-center gap-2">
+                {/* Save as Default — only for applicable sections */}
+                {currentSectionMeta?.canSaveAsDefault && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSaveAsDefault(activeSection)}
+                    disabled={savingDefault !== null}
+                    className="text-xs"
+                    title="Save this content as your default for future proposals"
+                  >
+                    {savingDefault === activeSection ? (
+                      <>
+                        <Spinner size="sm" className="mr-1.5" />
+                        Saving default...
+                      </>
+                    ) : savedDefaults.has(activeSection) ? (
+                      <>
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                        Saved as default
+                      </>
+                    ) : (
+                      <>
+                        <Bookmark className="h-3.5 w-3.5 mr-1.5" />
+                        Save as My Default
+                      </>
+                    )}
+                  </Button>
                 )}
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRegenerate(activeSection)}
+                  disabled={regenerating !== null}
+                >
+                  {regenerating === activeSection ? (
+                    <>
+                      <Spinner size="sm" className="mr-1.5" />
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-1.5" />
+                      Regenerate with AI
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
             {/* About Us */}
@@ -332,6 +433,22 @@ export default function ProposalEditorPage() {
                   rows={10}
                   className="w-full bg-background border border-card-border rounded-lg p-4 text-sm text-foreground resize-y focus:outline-none focus:ring-2 focus:ring-brand-orange/50"
                   placeholder="Tell clients about your company, expertise, and what sets you apart..."
+                />
+              </div>
+            )}
+
+            {/* Project Overview */}
+            {activeSection === "projectOverview" && (
+              <div>
+                <p className="text-sm text-muted mb-3">
+                  Executive summary of the project. Appears on page 3 of the proposal (only if filled in).
+                </p>
+                <textarea
+                  value={proposal.projectOverview || ""}
+                  onChange={(e) => updateField("projectOverview", e.target.value)}
+                  rows={10}
+                  className="w-full bg-background border border-card-border rounded-lg p-4 text-sm text-foreground resize-y focus:outline-none focus:ring-2 focus:ring-brand-orange/50"
+                  placeholder="Provide an executive summary of this project — scope, approach, and key value highlights..."
                 />
               </div>
             )}
@@ -466,6 +583,22 @@ export default function ProposalEditorPage() {
                   <Plus className="h-4 w-4 mr-1.5" />
                   Add Phase
                 </Button>
+              </div>
+            )}
+
+            {/* Investment Summary */}
+            {activeSection === "investmentSummary" && (
+              <div>
+                <p className="text-sm text-muted mb-3">
+                  Investment narrative and payment schedule description. Appears on the Investment &amp; Payment page of the proposal.
+                </p>
+                <textarea
+                  value={proposal.investmentSummary || ""}
+                  onChange={(e) => updateField("investmentSummary", e.target.value)}
+                  rows={8}
+                  className="w-full bg-background border border-card-border rounded-lg p-4 text-sm text-foreground resize-y focus:outline-none focus:ring-2 focus:ring-brand-orange/50"
+                  placeholder="Describe the investment value, payment schedule, and financing options..."
+                />
               </div>
             )}
 
