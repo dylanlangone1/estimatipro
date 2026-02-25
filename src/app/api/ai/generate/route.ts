@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { generateEstimate } from "@/lib/ai/estimate-generator"
+import { AI_FALLBACK_MODEL } from "@/lib/anthropic"
 import { generateEstimateInputSchema } from "@/lib/validations"
 import { loadTrainingContext } from "@/lib/ai/training-context-loader"
 import { buildEnhancedSystemPrompt, ESTIMATE_SYSTEM_PROMPT } from "@/lib/ai/prompts"
@@ -161,6 +162,15 @@ export async function POST(req: Request) {
       }
     }
 
+    // If Haiku fallback was used, surface a warning so the contractor knows to review carefully
+    if (aiResponse._modelUsed === AI_FALLBACK_MODEL) {
+      allAlerts.push({
+        lineItem: "",
+        alert: "Generated with fallback AI model due to high demand. Review this estimate carefully — it may be less detailed than usual.",
+        severity: "warning",
+      })
+    }
+
     // Compute markup amount server-side to avoid AI omitting it
     const computedMarkupAmount =
       aiResponse.suggestedMarkupAmount > 0
@@ -182,7 +192,7 @@ export async function POST(req: Request) {
           taxAmount: aiResponse.suggestedTax,
           totalAmount: aiResponse.totalAmount,
           aiGenerated: true,
-          aiModel: "claude-sonnet-4-6",
+          aiModel: aiResponse._modelUsed,
           assumptions: JSON.parse(JSON.stringify(aiResponse.assumptions)),
           deviationAlerts: allAlerts.length > 0
             ? JSON.parse(JSON.stringify(allAlerts))

@@ -1,8 +1,8 @@
-import { anthropic, AI_MODEL } from "@/lib/anthropic"
+import { anthropic, AI_MODEL, AI_FALLBACK_MODEL } from "@/lib/anthropic"
 import { ESTIMATE_SYSTEM_PROMPT, buildEstimateUserPrompt } from "./prompts"
 import { estimateResponseSchema } from "@/lib/validations"
 import { extractJson } from "./json-utils"
-import { withRetry } from "./retry-utils"
+import { withRetry, isRetryableError } from "./retry-utils"
 import type { AIEstimateResponse } from "@/types/estimate"
 
 export async function generateEstimate(
@@ -13,13 +13,31 @@ export async function generateEstimate(
   systemPrompt?: string,
   qualityLevel?: string,
   brandContext?: string,
-): Promise<AIEstimateResponse> {
-  return withRetry("estimate-generator", () =>
-    runGeneration(description, pricingDna, trades, materialPrices, systemPrompt, qualityLevel, brandContext)
-  )
+): Promise<AIEstimateResponse & { _modelUsed: string }> {
+  const args = [description, pricingDna, trades, materialPrices, systemPrompt, qualityLevel, brandContext] as const
+
+  try {
+    const result = await withRetry("estimate-generator", () =>
+      runGeneration(AI_MODEL, ...args)
+    )
+    return { ...result, _modelUsed: AI_MODEL }
+  } catch (primaryErr) {
+    if (isRetryableError(primaryErr)) {
+      // Sonnet retries exhausted — fall back to Haiku which has more available capacity
+      console.warn("[estimate-generator] Sonnet overloaded — falling back to Haiku")
+      const result = await withRetry(
+        "estimate-generator-haiku",
+        () => runGeneration(AI_FALLBACK_MODEL, ...args),
+        { maxRetries: 2, delays: [2000, 5000] },
+      )
+      return { ...result, _modelUsed: AI_FALLBACK_MODEL }
+    }
+    throw primaryErr
+  }
 }
 
 async function runGeneration(
+  model: string,
   description: string,
   pricingDna?: Record<string, unknown> | null,
   trades?: string[],
@@ -29,7 +47,7 @@ async function runGeneration(
   brandContext?: string,
 ): Promise<AIEstimateResponse> {
   const response = await anthropic.messages.stream({
-    model: AI_MODEL,
+    model,
     max_tokens: 32000,
     system: [
       {
