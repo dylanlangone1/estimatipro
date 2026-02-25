@@ -2,9 +2,24 @@ import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { ESTIMATE_SYSTEM_PROMPT, buildEstimateUserPrompt } from "./prompts"
 import { estimateResponseSchema } from "@/lib/validations"
 import { extractJson } from "./json-utils"
+import { withRetry } from "./retry-utils"
 import type { AIEstimateResponse } from "@/types/estimate"
 
 export async function generateEstimate(
+  description: string,
+  pricingDna?: Record<string, unknown> | null,
+  trades?: string[],
+  materialPrices?: Array<{ materialName: string; avgUnitPrice: number; unit: string; lastUnitPrice: number }>,
+  systemPrompt?: string,
+  qualityLevel?: string,
+  brandContext?: string,
+): Promise<AIEstimateResponse> {
+  return withRetry("estimate-generator", () =>
+    runGeneration(description, pricingDna, trades, materialPrices, systemPrompt, qualityLevel, brandContext)
+  )
+}
+
+async function runGeneration(
   description: string,
   pricingDna?: Record<string, unknown> | null,
   trades?: string[],

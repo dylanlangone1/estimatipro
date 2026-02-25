@@ -278,6 +278,12 @@ export async function POST(req: Request) {
         { status: 504 }
       )
     }
+    if (errMsg.includes("overloaded_error") || errMsg.includes("Overloaded")) {
+      return NextResponse.json(
+        { error: "The AI service is temporarily busy. Please wait a moment and try again." },
+        { status: 503 }
+      )
+    }
 
     return NextResponse.json(
       { error: `Failed to generate estimate: ${errMsg.slice(0, 120)}` },

@@ -3,8 +3,20 @@ import { EDIT_SYSTEM_PROMPT, buildEditUserPrompt } from "./prompts"
 import { editResponseSchema } from "@/lib/validations"
 import type { EditResponse } from "@/types/estimate"
 import { extractJson } from "./json-utils"
+import { withRetry } from "./retry-utils"
 
 export async function editEstimate(
+  currentEstimate: Record<string, unknown>,
+  editInstruction: string,
+  pricingDna?: Record<string, unknown> | null,
+  systemPrompt?: string,
+): Promise<EditResponse> {
+  return withRetry("estimate-editor", () =>
+    runEdit(currentEstimate, editInstruction, pricingDna, systemPrompt)
+  )
+}
+
+async function runEdit(
   currentEstimate: Record<string, unknown>,
   editInstruction: string,
   pricingDna?: Record<string, unknown> | null,
