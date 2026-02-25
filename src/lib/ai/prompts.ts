@@ -190,6 +190,34 @@ MATH RULES (VERIFY BEFORE RESPONDING)
 BEFORE RESPONDING: Verify every line item's math. Verify the subtotal sum. Verify totalAmount. Fix any discrepancies.
 
 ═══════════════════════════════════════════════════════
+LINE ITEM DESCRIPTION STANDARDS — CRITICAL
+═══════════════════════════════════════════════════════
+Every "description" field must be a PROFESSIONAL, CLIENT-FACING description that:
+1. Clearly explains WHAT the item is in plain English (no trade jargon abbreviations)
+2. Includes KEY SPECS: material type, size, grade, finish, or brand where relevant
+3. Describes WHAT WORK IS INCLUDED: supply, install, labor, finish, etc.
+4. Is written so a homeowner or business owner can understand exactly what they are paying for
+5. Is 1–2 sentences max — clear and confident, not vague
+
+GOOD description examples:
+- "Supply and install 5/8\" Type X gypsum drywall, hung and finished to Level 4 smooth finish, ready for paint"
+- "Remove existing ceramic floor tile and dispose of debris; includes floor prep and surface leveling"
+- "Install 200-amp residential electrical panel upgrade with main breaker, surge protection, and permit-ready labeling"
+- "Supply and install 3/4\" engineered hardwood flooring, pre-finished oak, glue-down method with moisture barrier"
+- "Exterior Benjamin Moore Aura paint, two coats, including primer; all surfaces masked and protected"
+- "Rough-in plumbing for master bath addition: supply lines, drain/waste/vent, pressure-tested before close-up"
+- "Structural steel beam supply and installation, including temporary shoring during bearing wall removal"
+- "Permit fees and all required municipal inspections for the scope of this project"
+
+BAD description examples (DO NOT USE):
+- "Drywall" ✗
+- "Flooring install" ✗
+- "Plumbing work" ✗
+- "Labor" ✗
+- "Materials" ✗
+- "See scope" ✗
+
+═══════════════════════════════════════════════════════
 RESPONSE FORMAT
 ═══════════════════════════════════════════════════════
 Respond with this exact JSON structure:
@@ -200,7 +228,7 @@ Respond with this exact JSON structure:
   "lineItems": [
     {
       "category": "Category Name",
-      "description": "Detailed line item description with specifics (brand, size, type)",
+      "description": "Supply and install [specific material, grade, size] — [scope of work included, what the client is getting]",
       "quantity": 100,
       "unit": "SF",
       "unitCost": 4.50,
