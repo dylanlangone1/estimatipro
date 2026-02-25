@@ -12,7 +12,7 @@ export async function editEstimate(
 ): Promise<EditResponse> {
   const response = await anthropic.messages.create({
     model: AI_MODEL,
-    max_tokens: 8192,
+    max_tokens: 16000,
     system: [
       {
         type: "text" as const,
@@ -27,6 +27,10 @@ export async function editEstimate(
       },
     ],
   })
+
+  if (response.stop_reason === "max_tokens") {
+    throw new Error("AI response was too large and got cut off. Try a simpler edit or break it into smaller changes.")
+  }
 
   const textBlock = response.content.find((c) => c.type === "text")
   if (!textBlock || textBlock.type !== "text") {
