@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { generateEstimate } from "@/lib/ai/estimate-generator"
@@ -267,6 +268,16 @@ export async function POST(req: Request) {
       message: errMsg,
       stack: errStack,
       name: error instanceof Error ? error.name : "Unknown",
+    })
+
+    // Send to Sentry with user context so we know who was affected
+    const session = await auth().catch(() => null)
+    Sentry.withScope((scope) => {
+      scope.setTag("component", "ai-generate")
+      if (session?.user) {
+        scope.setUser({ id: session.user.id, email: session.user.email ?? undefined })
+      }
+      Sentry.captureException(error)
     })
 
     // Return more specific error messages based on error type
