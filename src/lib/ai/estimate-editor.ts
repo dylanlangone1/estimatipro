@@ -22,23 +22,26 @@ async function runEdit(
   pricingDna?: Record<string, unknown> | null,
   systemPrompt?: string,
 ): Promise<EditResponse> {
-  const response = await anthropic.messages.stream({
-    model: AI_MODEL,
-    max_tokens: 16000,
-    system: [
-      {
-        type: "text" as const,
-        text: systemPrompt || EDIT_SYSTEM_PROMPT,
-        cache_control: { type: "ephemeral" as const },
-      },
-    ],
-    messages: [
-      {
-        role: "user",
-        content: buildEditUserPrompt(currentEstimate, editInstruction, pricingDna),
-      },
-    ],
-  }).finalMessage()
+  const response = await anthropic.messages.stream(
+    {
+      model: AI_MODEL,
+      max_tokens: 16000,
+      system: [
+        {
+          type: "text" as const,
+          text: systemPrompt || EDIT_SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" as const },
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: buildEditUserPrompt(currentEstimate, editInstruction, pricingDna),
+        },
+      ],
+    },
+    { timeout: 60_000 },  // 60s timeout — prevents loading forever on hung connections
+  ).finalMessage()
 
   if (response.stop_reason === "max_tokens") {
     throw new Error("AI response was too large and got cut off. Try a simpler edit or break it into smaller changes.")

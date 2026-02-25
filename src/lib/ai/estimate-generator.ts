@@ -55,23 +55,26 @@ async function runGeneration(
   qualityLevel?: string,
   brandContext?: string,
 ): Promise<AIEstimateResponse> {
-  const response = await anthropic.messages.stream({
-    model,
-    max_tokens: 16000,
-    system: [
-      {
-        type: "text" as const,
-        text: systemPrompt || ESTIMATE_SYSTEM_PROMPT,
-        cache_control: { type: "ephemeral" as const },
-      },
-    ],
-    messages: [
-      {
-        role: "user",
-        content: buildEstimateUserPrompt(description, pricingDna, trades, materialPrices, qualityLevel, brandContext),
-      },
-    ],
-  }).finalMessage()
+  const response = await anthropic.messages.stream(
+    {
+      model,
+      max_tokens: 16000,
+      system: [
+        {
+          type: "text" as const,
+          text: systemPrompt || ESTIMATE_SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" as const },
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: buildEstimateUserPrompt(description, pricingDna, trades, materialPrices, qualityLevel, brandContext),
+        },
+      ],
+    },
+    { timeout: 60_000 },  // 60s — throws APIConnectionTimeoutError if hung; triggers retry + Haiku fallback
+  ).finalMessage()
 
   if (response.stop_reason === "max_tokens") {
     throw new Error("AI response was too large and got cut off. Try a more specific description or break the project into phases.")

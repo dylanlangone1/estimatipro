@@ -27,5 +27,7 @@ export const anthropic = {
   },
 } as unknown as Anthropic
 
-export const AI_MODEL = "claude-sonnet-4-6"
+// Sonnet 4.5 (Sep 2025) — proven stable, 5+ months in production
+// Switch back to claude-sonnet-4-6 once capacity stabilises (est. Mar-Apr 2026)
+export const AI_MODEL = "claude-sonnet-4-5-20250929"
 export const AI_FALLBACK_MODEL = "claude-haiku-4-5-20251001"
