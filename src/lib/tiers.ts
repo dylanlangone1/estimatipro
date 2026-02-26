@@ -9,9 +9,11 @@ import type { SubscriptionTier } from "@/generated/prisma/client"
 export async function getUserTier(userId: string): Promise<SubscriptionTier> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { tier: true, subscriptionStatus: true },
+    select: { tier: true, subscriptionStatus: true, trialEndsAt: true },
   })
-  // Grant full MAX access during trial so users can test every feature
+  // Promo-code 30-day free trial (no Stripe required)
+  if (user?.trialEndsAt && user.trialEndsAt > new Date()) return "MAX"
+  // Grant full MAX access during Stripe trial so users can test every feature
   if (user?.subscriptionStatus === "trialing") return "MAX"
   return user?.tier ?? "FREE"
 }

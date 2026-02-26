@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json()
+    const { name, email, password, promoCode } = await request.json()
 
     // Validate inputs
     if (!email || !password || !name) {
@@ -58,10 +58,48 @@ export async function POST(request: Request) {
       },
     })
 
+    // Apply promo code if provided — grants 30-day MAX trial, no card required
+    let trialActivated = false
+    if (promoCode && typeof promoCode === "string") {
+      const code = promoCode.trim().toUpperCase()
+      try {
+        const promo = await prisma.promoCode.findUnique({ where: { code } })
+
+        const isValid =
+          promo &&
+          (promo.expiresAt === null || promo.expiresAt > new Date()) &&
+          (promo.maxUses === null || promo.usedCount < promo.maxUses)
+
+        if (isValid) {
+          const trialEndsAt = new Date()
+          trialEndsAt.setDate(trialEndsAt.getDate() + 30)
+
+          await prisma.$transaction([
+            prisma.promoCode.update({
+              where: { code },
+              data: { usedCount: { increment: 1 } },
+            }),
+            prisma.user.update({
+              where: { id: user.id },
+              data: { trialEndsAt, promoCodeUsed: code },
+            }),
+          ])
+          trialActivated = true
+          console.log(`[register] Promo code "${code}" applied to user ${user.id} — trial ends ${trialEndsAt.toISOString()}`)
+        } else {
+          console.warn(`[register] Promo code "${code}" was invalid or maxed out for user ${user.id} — account created on FREE`)
+        }
+      } catch (promoErr) {
+        // Never fail registration because of a promo code error — just log it
+        console.error("[register] Promo code application error:", promoErr)
+      }
+    }
+
     return NextResponse.json(
       {
         message: "Account created successfully.",
         userId: user.id,
+        trialActivated,
       },
       { status: 201 }
     )

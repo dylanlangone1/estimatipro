@@ -62,6 +62,10 @@ model User {
   proposalLogoWatermark  Boolean @default(false)
   invoicePaymentDays     Int     @default(30)
 
+  // Promo-code free trial (no Stripe required)
+  trialEndsAt   DateTime?  // when set and in the future, user gets MAX tier
+  promoCodeUsed String?    // which promo code activated the trial
+
   // Relations
   accounts         Account[]
   sessions         Session[]
@@ -426,6 +430,17 @@ model ProposalDefaults {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── Promo Codes ───
+
+model PromoCode {
+  id        String    @id @default(cuid())
+  code      String    @unique  // e.g. "BLUECOLLAR" — always stored uppercase
+  maxUses   Int?               // null = unlimited
+  usedCount Int       @default(0)
+  expiresAt DateTime?          // null = never expires
+  createdAt DateTime  @default(now())
 }
 
 // ─── Enums ───

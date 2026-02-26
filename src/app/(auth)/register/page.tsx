@@ -1,19 +1,44 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, useCallback, Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 
+type PromoStatus = "idle" | "checking" | "valid" | "invalid"
+
 function RegisterForm() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [promoCode, setPromoCode] = useState("")
+  const [promoStatus, setPromoStatus] = useState<PromoStatus>("idle")
+  const [promoMessage, setPromoMessage] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Live promo code validation on blur
+  const validatePromoCode = useCallback(async (code: string) => {
+    const trimmed = code.trim()
+    if (!trimmed) {
+      setPromoStatus("idle")
+      setPromoMessage("")
+      return
+    }
+    setPromoStatus("checking")
+    try {
+      const res = await fetch(`/api/promo/validate?code=${encodeURIComponent(trimmed)}`)
+      const data = await res.json()
+      setPromoStatus(data.valid ? "valid" : "invalid")
+      setPromoMessage(data.message ?? "")
+    } catch {
+      setPromoStatus("idle")
+      setPromoMessage("")
+    }
+  }, [])
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +62,7 @@ function RegisterForm() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, promoCode: promoCode.trim() || undefined }),
       })
 
       const data = await res.json()
@@ -68,7 +93,8 @@ function RegisterForm() {
       }
 
       // No error → session was set; navigate regardless of result?.ok value
-      window.location.href = "/dashboard"
+      const redirect = data.trialActivated ? "/dashboard?welcome=trial" : "/dashboard"
+      window.location.href = redirect
     } catch {
       setError("Network error. Please try again.")
       setLoading(false)
@@ -172,6 +198,34 @@ function RegisterForm() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
+
+            {/* Promo code field */}
+            <div>
+              <Input
+                id="promoCode"
+                label="Promo code"
+                type="text"
+                placeholder="Optional — enter code for free trial"
+                value={promoCode}
+                onChange={(e) => {
+                  setPromoCode(e.target.value)
+                  setPromoStatus("idle")
+                  setPromoMessage("")
+                }}
+                onBlur={(e) => validatePromoCode(e.target.value)}
+                autoComplete="off"
+              />
+              {promoStatus === "checking" && (
+                <p className="text-xs text-muted mt-1 pl-1">Checking code…</p>
+              )}
+              {promoStatus === "valid" && (
+                <p className="text-xs text-green-600 mt-1 pl-1 font-medium">✓ {promoMessage}</p>
+              )}
+              {promoStatus === "invalid" && (
+                <p className="text-xs text-red-500 mt-1 pl-1">✗ {promoMessage}</p>
+              )}
+            </div>
+
             <Button
               type="submit"
               variant="secondary"
