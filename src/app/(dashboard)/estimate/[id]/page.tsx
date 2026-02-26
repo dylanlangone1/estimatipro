@@ -24,12 +24,15 @@ export default async function EstimatePage({
   const user = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { tier: true, stripeConnectOnboarded: true, subscriptionStatus: true },
+        select: { tier: true, stripeConnectOnboarded: true, subscriptionStatus: true, trialEndsAt: true },
       })
     : null
 
-  // Grant MAX tier during trial so all export/proposal features are accessible
-  const userTier = user?.subscriptionStatus === "trialing" ? "MAX" : (user?.tier ?? "FREE")
+  // Grant MAX tier during Stripe trial OR active promo code trial (trialEndsAt)
+  const hasActiveTrial =
+    user?.subscriptionStatus === "trialing" ||
+    (user?.trialEndsAt != null && user.trialEndsAt > new Date())
+  const userTier = hasActiveTrial ? "MAX" : (user?.tier ?? "FREE")
 
   return (
     <EstimateView
