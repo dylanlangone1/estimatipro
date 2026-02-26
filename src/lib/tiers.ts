@@ -90,10 +90,12 @@ export async function checkLimit(
   let current: number
 
   if (feature === "estimatesPerMonth") {
+    // FREE tier: count all-time (3 total ever, not per month)
+    // Paid tiers all have Infinity so they never reach this branch
     current = await prisma.estimate.count({
       where: {
         userId,
-        createdAt: { gte: startOfMonth },
+        ...(tier !== "FREE" && { createdAt: { gte: startOfMonth } }),
       },
     })
   } else {

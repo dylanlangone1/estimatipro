@@ -2,7 +2,7 @@ export const TIER_FEATURES = {
   FREE: {
     name: "Free Trial",
     price: 0,
-    estimatesPerMonth: 10,
+    estimatesPerMonth: 3,
     uploadsPerMonth: 0,
     promptToEstimate: true,
     promptToEdit: true,

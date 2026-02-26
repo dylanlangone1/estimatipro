@@ -44,12 +44,12 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check monthly estimate limit
+    // Check estimate limit (FREE tier: 3 total all-time; paid tiers: unlimited)
     const limitCheck = await checkLimit(session.user.id, "estimatesPerMonth")
     if (!limitCheck.allowed) {
       return NextResponse.json(
         {
-          error: `You've reached your monthly estimate limit (${limitCheck.current}/${limitCheck.limit}). Upgrade your plan for more.`,
+          error: `You've used all ${limitCheck.limit} free trial estimates. Upgrade your plan to generate unlimited estimates.`,
         },
         { status: 403 }
       )
