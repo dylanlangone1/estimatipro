@@ -185,13 +185,14 @@ ${estimate.client ? `Client: ${estimate.client.name}` : ""}`
     // Generate full proposal (only the sections that need AI)
     const response = await withRetry(
       "proposal-generate",
-      () => anthropic.messages.create({
-        model: AI_MODEL,
-        max_tokens: 3000,
-        messages: [
-          {
-            role: "user",
-            content: `Generate professional construction proposal content. Return ONLY valid JSON — no preamble or explanation.
+      () => anthropic.messages.create(
+        {
+          model: AI_MODEL,
+          max_tokens: 3000,
+          messages: [
+            {
+              role: "user",
+              content: `Generate professional construction proposal content. Return ONLY valid JSON — no preamble or explanation.
 
 ${companyContext}
 
@@ -203,9 +204,11 @@ JSON structure to return:
 }
 
 Rules: one scopeOfWork entry per category from the line items. All text must be professional contractor language.`,
-          },
-        ],
-      }),
+            },
+          ],
+        },
+        { timeout: 60_000 }, // 60s — prevents loading forever on hung connections
+      ),
       LIGHT_RETRY,
     )
 
@@ -432,11 +435,14 @@ Return ONLY a JSON object: {"investmentSummary": "the text"}`,
 
   const response = await withRetry(
     `proposal-regenerate-${section}`,
-    () => anthropic.messages.create({
-      model: AI_MODEL,
-      max_tokens: 2048,
-      messages: [{ role: "user", content: prompt }],
-    }),
+    () => anthropic.messages.create(
+      {
+        model: AI_MODEL,
+        max_tokens: 2048,
+        messages: [{ role: "user", content: prompt }],
+      },
+      { timeout: 60_000 }, // 60s — prevents loading forever on hung connections
+    ),
     LIGHT_RETRY,
   )
 
