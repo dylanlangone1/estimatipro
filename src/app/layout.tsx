@@ -21,6 +21,29 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "EstimAI Pro",
   },
+  openGraph: {
+    title: "EstimAI Pro — Next Best App for Builders & Trades",
+    description:
+      "AI-backed construction estimating. Built by a builder for builders. Generate accurate estimates in seconds.",
+    url: "https://www.estimaipro.com",
+    siteName: "EstimAI Pro",
+    images: [
+      {
+        url: "https://www.estimaipro.com/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "EstimAI Pro — AI-powered estimating for builders and trades",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EstimAI Pro — Next Best App for Builders & Trades",
+    description:
+      "AI-backed construction estimating. Built by a builder for builders.",
+    images: ["https://www.estimaipro.com/og-image.png"],
+  },
 }
 
 export const viewport: Viewport = {
