@@ -8,8 +8,16 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
+  // Replace deprecated SSL modes that trigger pg-connection-string warning (pg v9 compat).
+  // DATABASE_URL often contains ?sslmode=require; replace with verify-full so pg doesn't
+  // warn about upcoming libpq semantics change. No security behaviour changes — the pool
+  // already enforces ssl: { rejectUnauthorized: true } which is equivalent to verify-full.
+  const connStr = (process.env.DATABASE_URL ?? "").replace(
+    /sslmode=(prefer|require|verify-ca)/g,
+    "sslmode=verify-full"
+  )
   const pool = new pg.Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connStr,
     max: 5,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
