@@ -58,7 +58,7 @@ async function runGeneration(
   const response = await anthropic.messages.stream(
     {
       model,
-      max_tokens: 8000,
+      max_tokens: 12000,
       system: [
         {
           type: "text" as const,
