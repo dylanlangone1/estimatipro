@@ -16,6 +16,7 @@ export const MATERIAL_DB: MaterialDB = {
     { id: "r01", name: "2x4 Studs Pre-cut", unit: "EA", cost: 4.28, cat: "Framing", waste: 1.08 },
     { id: "r02", name: "2x6 Studs Pre-cut", unit: "EA", cost: 6.85, cat: "Framing", waste: 1.08 },
     { id: "r03", name: "2x4 Plates 16'", unit: "LF", cost: 0.55, cat: "Framing", waste: 1.05 },
+    { id: "r04", name: "2x6 Plates 16'", unit: "LF", cost: 0.82, cat: "Framing", waste: 1.05 },
     { id: "r05", name: "2x10 Headers", unit: "LF", cost: 2.1, cat: "Framing", waste: 1.1 },
     { id: "r06", name: "2x12 Ridge", unit: "LF", cost: 2.95, cat: "Framing", waste: 1.1 },
     { id: "r07", name: 'OSB Sheathing 7/16"', unit: "SF", cost: 0.85, cat: "Framing", waste: 1.08 },
@@ -48,6 +49,7 @@ export const MATERIAL_DB: MaterialDB = {
   insulation: [
     { id: "n01", name: "R-38 Batt (attic)", unit: "SF", cost: 1.15, cat: "Insulation", waste: 1.05 },
     { id: "n03", name: "R-13 Batt (walls)", unit: "SF", cost: 0.55, cat: "Insulation", waste: 1.05 },
+    { id: "n04", name: "R-21 Batt (ext. walls)", unit: "SF", cost: 0.78, cat: "Insulation", waste: 1.05 },
   ],
   doors_windows: [
     { id: "dw01", name: 'Ext Steel Door 36"', unit: "EA", cost: 385, cat: "Doors/Windows", waste: 1.0 },
