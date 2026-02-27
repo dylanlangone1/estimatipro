@@ -7,6 +7,7 @@ export const TIER_FEATURES = {
     promptToEstimate: true,
     promptToEdit: true,
     historicalUpload: false,
+    blueprintTakeoff: true,      // free trial gets blueprint access
     pricingDNA: false,
     deviationAlerts: false,
     pdfExport: true,
@@ -33,6 +34,7 @@ export const TIER_FEATURES = {
     promptToEstimate: true,
     promptToEdit: true,
     historicalUpload: true,
+    blueprintTakeoff: false,     // core plan: no blueprint takeoff
     pricingDNA: true,
     deviationAlerts: true,
     pdfExport: true,
@@ -59,6 +61,7 @@ export const TIER_FEATURES = {
     promptToEstimate: true,
     promptToEdit: true,
     historicalUpload: true,
+    blueprintTakeoff: false,     // pro plan: no blueprint takeoff
     pricingDNA: true,
     deviationAlerts: true,
     pdfExport: true,
@@ -85,6 +88,7 @@ export const TIER_FEATURES = {
     promptToEstimate: true,
     promptToEdit: true,
     historicalUpload: true,
+    blueprintTakeoff: true,      // max plan: full blueprint takeoff access
     pricingDNA: true,
     deviationAlerts: true,
     pdfExport: true,

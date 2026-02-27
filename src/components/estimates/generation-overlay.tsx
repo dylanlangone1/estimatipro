@@ -68,6 +68,8 @@ const PHASE_MESSAGES: Record<ProjectType, string[]> = {
     "Selecting backsplash and finish materials...",
     "Calculating demolition and waste removal...",
     "Sizing up the island layout...",
+    "Debating subway tile vs. marble for the 47th time today...",
+    "The island is definitely big enough. (It's not. We upsized it.)",
   ],
   bathroom: [
     "Measuring tile and waterproofing areas...",
@@ -75,6 +77,8 @@ const PHASE_MESSAGES: Record<ProjectType, string[]> = {
     "Planning plumbing relocations...",
     "Calculating ventilation requirements...",
     "Selecting shower and tub specifications...",
+    "Counting hex tiles. There are a disturbing number of hex tiles.",
+    "Calculating whether a rainfall shower is worth it. (It is.)",
   ],
   roof: [
     "Calculating roof area and pitch...",
@@ -82,6 +86,8 @@ const PHASE_MESSAGES: Record<ProjectType, string[]> = {
     "Pricing flashing and ridge vents...",
     "Factoring in tear-off and disposal...",
     "Checking for structural reinforcement needs...",
+    "Counting shingles so you don't have to (trust us, it's a lot)...",
+    "Determining pitch: 6:12? 8:12? Asking the pixels nicely.",
   ],
   deck: [
     "Sizing up the footprint and framing...",
@@ -89,6 +95,8 @@ const PHASE_MESSAGES: Record<ProjectType, string[]> = {
     "Designing railing and stair systems...",
     "Calculating footer and foundation needs...",
     "Adding hardware and structural connectors...",
+    "Composite or pressure-treated? AI says composite. Budget says otherwise.",
+    "Adding footers because local inspectors are picky (and correct).",
   ],
   basement: [
     "Evaluating moisture and waterproofing...",
@@ -96,6 +104,8 @@ const PHASE_MESSAGES: Record<ProjectType, string[]> = {
     "Sizing HVAC extensions and ductwork...",
     "Framing walls and dropping ceiling grids...",
     "Calculating electrical and lighting layout...",
+    "Praying there's no hidden moisture problem. Just kidding. We checked.",
+    "Calculating egress. Turns out windows matter down here.",
   ],
   newbuild: [
     "Analyzing foundation and sitework...",
@@ -103,6 +113,8 @@ const PHASE_MESSAGES: Record<ProjectType, string[]> = {
     "Planning mechanical, electrical, and plumbing...",
     "Estimating exterior envelope and insulation...",
     "Calculating finish materials and trim...",
+    "Starting from dirt. The most honest kind of estimate.",
+    "Factoring in the part where the concrete truck shows up late.",
   ],
   commercial: [
     "Reviewing commercial specifications...",
@@ -110,6 +122,8 @@ const PHASE_MESSAGES: Record<ProjectType, string[]> = {
     "Calculating code compliance requirements...",
     "Estimating HVAC and fire protection...",
     "Planning ADA and accessibility upgrades...",
+    "Making sure the ADA checklist is actually checked.",
+    "Pricing the stuff the architect forgot to specify.",
   ],
   addition: [
     "Tying into existing structure...",
@@ -117,6 +131,8 @@ const PHASE_MESSAGES: Record<ProjectType, string[]> = {
     "Planning roof tie-in and weatherproofing...",
     "Matching existing finishes and materials...",
     "Calculating electrical panel and HVAC load...",
+    "Making sure the new roof ties in. This is the hard part.",
+    "Matching 1970s siding. Good luck to all of us.",
   ],
   remodel: [
     "Scoping demolition and protection...",
@@ -124,6 +140,8 @@ const PHASE_MESSAGES: Record<ProjectType, string[]> = {
     "Planning structural modifications...",
     "Calculating waste removal and dumpster needs...",
     "Matching existing systems and transitions...",
+    "Assuming there's asbestos. Just kidding. We have a line item for testing.",
+    "Demo always goes faster than expected. The bill doesn't.",
   ],
   general: [
     "Analyzing your project scope...",
@@ -131,6 +149,8 @@ const PHASE_MESSAGES: Record<ProjectType, string[]> = {
     "Calculating quantities and waste factors...",
     "Building the line-item breakdown...",
     "Applying regional pricing adjustments...",
+    "Doing math so you can do literally anything else...",
+    "Building a 200-line estimate faster than you can make coffee...",
   ],
 }
 
@@ -156,6 +176,14 @@ const CONTEXT_MESSAGES = [
   "We're checking your correction history to avoid past mistakes.",
   "Your pricing DNA is being woven into every calculation.",
   "A 200-line estimate in seconds — used to take hours by hand.",
+  "Fun fact: We never say 'that's probably around $5k.' We know it's $4,847.",
+  "Our AI has never once said 'add 10% for stuff I forgot.' You're welcome.",
+  "Your competitors are still using spreadsheets. You're not. Just saying.",
+  "Warning: This estimate may cause confidence. Side effects include winning more bids.",
+  "The model is also judging your description. Just kidding. (Mostly.)",
+  "We cross-check every number. Twice. Because 'close enough' costs you money.",
+  "Somewhere a contractor just guessed on a bid. You didn't. Nice.",
+  "No line items were harmed in the making of this estimate.",
 ]
 
 // Shuffle array (Fisher-Yates) — returns a new shuffled copy

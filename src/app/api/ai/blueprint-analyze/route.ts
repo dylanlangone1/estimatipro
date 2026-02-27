@@ -4,30 +4,30 @@ import { requireFeature } from "@/lib/tiers"
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { extractJson } from "@/lib/ai/json-utils"
 
-// PDFs with many pages can take 2–5 min; raise timeout accordingly
-export const maxDuration = 300
+// Typical response time after client-side resize: 8–20s; 60s is a safe ceiling
+export const maxDuration = 60
 
-const BLUEPRINT_PROMPT = `You are an expert residential construction estimator. Analyze this blueprint/floor plan image or PDF.
+const BLUEPRINT_PROMPT = `You are a residential construction estimator. Analyze this blueprint/floor plan.
 
-Return ONLY a valid JSON object with no markdown, no backticks, no preamble:
+Return ONLY valid JSON, no markdown or backticks:
 {
-  "totalSqft": <total living area in square feet as a number>,
-  "stories": <number of stories, 1 or 2>,
-  "bedrooms": <number of bedrooms>,
-  "bathrooms": <bathrooms as decimal, e.g. 2.5 for 2 full + 1 half>,
-  "garageSize": <0=none, 1=one car, 2=two car, 3=three car>,
+  "totalSqft": <living area SF>,
+  "stories": <1 or 2>,
+  "bedrooms": <count>,
+  "bathrooms": <decimal e.g. 2.5>,
+  "garageSize": <0–3 cars>,
   "roofType": "<gable|hip|flat>",
   "foundationType": "<slab|crawl|basement>",
-  "exteriorWallLF": <linear feet of exterior walls>,
-  "interiorWallLF": <linear feet of interior walls>,
-  "ceilingHeight": <typical ceiling height in feet>,
-  "windows": { "doubleHung": <count>, "sliding": <count>, "picture": <count> },
-  "doors": { "exterior": <count>, "interior": <count> },
-  "kitchenLF": <linear feet of kitchen counter run>,
-  "notes": "<any special features or observations>"
+  "exteriorWallLF": <linear feet>,
+  "interiorWallLF": <linear feet>,
+  "ceilingHeight": <feet>,
+  "windows": { "doubleHung": <n>, "sliding": <n>, "picture": <n> },
+  "doors": { "exterior": <n>, "interior": <n> },
+  "kitchenLF": <counter run LF>,
+  "notes": "<special features>"
 }
 
-Be as accurate as possible from the drawing. If a value cannot be determined, use a reasonable estimate for a typical home of the apparent size. Every field must have a value.`
+Every field is required. Estimate from context if a value is not explicit.`
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const
 type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number]
@@ -44,10 +44,10 @@ export async function POST(req: Request) {
     }
 
     try {
-      await requireFeature(session.user.id, "historicalUpload")
+      await requireFeature(session.user.id, "blueprintTakeoff")
     } catch {
       return NextResponse.json(
-        { error: "Blueprint AI analysis requires a Standard plan or higher." },
+        { error: "Blueprint takeoff is available on the Free Trial and Max plans." },
         { status: 403 }
       )
     }
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     const response = await anthropic.messages.create(
       {
         model: AI_MODEL,
-        max_tokens: 4000,
+        max_tokens: 1024,
         messages: [
           {
             role: "user",
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
           },
         ],
       },
-      { timeout: 280_000 } // 280 s — just under Vercel maxDuration of 300 s
+      { timeout: 45_000 } // 45 s — well within maxDuration of 60 s
     )
 
     const text = response.content

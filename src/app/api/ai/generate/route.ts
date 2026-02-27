@@ -13,8 +13,8 @@ import { getBrandContext } from "@/lib/ai/brand-extraction-engine"
 import { buildDescriptionFromGuided, buildDescriptionFromManual } from "@/lib/ai/description-builder"
 import { rateLimit } from "@/lib/rate-limit"
 
-// AI generation can take 30–90 s for large estimates — raise Vercel function timeout
-export const maxDuration = 300
+// 90s timeout + 1 retry = 180s worst case; 150s is a practical ceiling
+export const maxDuration = 150
 
 export async function POST(req: Request) {
   try {

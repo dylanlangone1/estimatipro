@@ -24,16 +24,16 @@ import { runAudit } from "@/lib/takeoff/audit-engine"
 import type { TakeoffItem, BlueprintParams, AuditResult } from "@/types/takeoff"
 
 const ANALYSIS_PHASES = [
-  "Scanning blueprint scale…",
-  "Detecting wall boundaries…",
-  "Measuring room dimensions…",
-  "Identifying openings…",
-  "Classifying fixtures…",
-  "Mapping electrical layout…",
-  "Computing framing layout…",
-  "Calculating roof area…",
-  "Applying waste factors…",
-  "Running 7-layer audit…",
+  "Waking up the AI… (it's grumpy before coffee)",
+  "Counting walls so you don't have to…",
+  "Arguing with pixels about where the kitchen is…",
+  "Convincing Claude that's a door, not a window…",
+  "Calculating how many 2×6s fit in one truck…",
+  "Bribing the blueprint to reveal its secrets…",
+  "Cross-referencing with 1,000 past builds…",
+  "Applying waste factors (builders waste EVERYTHING)…",
+  "Running 7-layer audit… almost there!",
+  "Polishing the numbers… stand by…",
 ]
 
 const DEFAULT_PARAMS: BlueprintParams = {
@@ -70,6 +70,32 @@ function fetchWithTimeout(url: string, opts: RequestInit, ms: number): Promise<R
     fetch(url, opts)
       .then((r) => { clearTimeout(timer); resolve(r) })
       .catch((e) => { clearTimeout(timer); reject(e) })
+  })
+}
+
+// Resize image to max 2048px on longest side, JPEG 0.85 — reduces upload payload ~70%
+// PDFs are passed through unchanged (can't be resized in browser)
+async function resizeImageForUpload(file: File): Promise<File> {
+  const MAX_PX = 2048
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const { naturalWidth: w, naturalHeight: h } = img
+      if (w <= MAX_PX && h <= MAX_PX) { resolve(file); return }
+      const scale = MAX_PX / Math.max(w, h)
+      const canvas = document.createElement("canvas")
+      canvas.width  = Math.round(w * scale)
+      canvas.height = Math.round(h * scale)
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      canvas.toBlob(
+        (blob) => resolve(blob ? new File([blob], file.name, { type: "image/jpeg" }) : file),
+        "image/jpeg", 0.85
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.src = url
   })
 }
 
@@ -163,8 +189,10 @@ export function BlueprintTakeoff() {
       setPhase("Uploading blueprint…")
       setProgress(5)
       try {
+        const isPDF = uploadedFile.type === "application/pdf" || uploadedFile.name.toLowerCase().endsWith(".pdf")
+        const fileToUpload = isPDF ? uploadedFile : await resizeImageForUpload(uploadedFile)
         const formData = new FormData()
-        formData.append("file", uploadedFile)
+        formData.append("file", fileToUpload)
         // M9: 60-second timeout for blueprint vision analysis
         const res = await fetchWithTimeout("/api/ai/blueprint-analyze", { method: "POST", body: formData }, 60_000)
         if (res.ok) {

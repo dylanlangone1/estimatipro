@@ -58,7 +58,7 @@ async function runGeneration(
   const response = await anthropic.messages.stream(
     {
       model,
-      max_tokens: 16000,
+      max_tokens: 8000,
       system: [
         {
           type: "text" as const,
@@ -73,7 +73,7 @@ async function runGeneration(
         },
       ],
     },
-    { timeout: 60_000 },  // 60s — throws APIConnectionTimeoutError if hung; triggers retry + Haiku fallback
+    { timeout: 90_000 },  // 90s — covers ~7k-token response at ~80 tok/sec without spurious retries
   ).finalMessage()
 
   if (response.stop_reason === "max_tokens") {

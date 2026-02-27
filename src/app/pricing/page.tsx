@@ -46,6 +46,7 @@ function getPlans() {
       priceId: process.env.STRIPE_MAX_PRICE_ID || "",
       features: [
         "Everything in Pro",
+        "Takeoff from Blueprint (AI material takeoff)",
         "Premium 10-page Final Proposals",
         "Client invoices with online payment",
         "Accept card payments via Stripe",
