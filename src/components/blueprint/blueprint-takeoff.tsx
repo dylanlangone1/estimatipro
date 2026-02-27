@@ -72,6 +72,8 @@ export function BlueprintTakeoff() {
   const [sendingToEstimate, setSendingToEstimate] = useState(false)
   const [aiReviewText, setAiReviewText] = useState("")
   const [aiReviewLoading, setAiReviewLoading] = useState(false)
+  const [runError, setRunError] = useState<string | null>(null)
+  const [isRunning, setIsRunning] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function update<K extends keyof BlueprintParams>(key: K, value: BlueprintParams[K]) {
@@ -97,10 +99,17 @@ export function BlueprintTakeoff() {
   })
 
   async function runTakeoff() {
+    if (isRunning) return
+    setIsRunning(true)
+    setRunError(null)
     setStep(1)
     setProgress(0)
     setAiReviewText("")
     setAudit(null)
+
+    // Sanitize sqft — NaN/0 falls back to default
+    const safeSqft = params.sqft > 0 && !Number.isNaN(params.sqft) ? params.sqft : DEFAULT_PARAMS.sqft
+    const safeParams: BlueprintParams = { ...params, sqft: safeSqft }
 
     let aiData: Partial<BlueprintParams> | null = null
 
@@ -115,18 +124,28 @@ export function BlueprintTakeoff() {
           const json = await res.json()
           const d = json.data ?? {}
           aiData = {
-            sqft: d.totalSqft ?? params.sqft,
-            stories: d.stories ?? params.stories,
-            bedrooms: d.bedrooms ?? params.bedrooms,
-            bathrooms: d.bathrooms ?? params.bathrooms,
-            garageSize: d.garageSize ?? params.garageSize,
-            roofType: (d.roofType ?? params.roofType) as BlueprintParams["roofType"],
-            foundationType: (d.foundationType ?? params.foundationType) as BlueprintParams["foundationType"],
+            sqft: d.totalSqft > 0 ? d.totalSqft : safeParams.sqft,
+            stories: d.stories ?? safeParams.stories,
+            bedrooms: d.bedrooms ?? safeParams.bedrooms,
+            bathrooms: d.bathrooms ?? safeParams.bathrooms,
+            garageSize: d.garageSize ?? safeParams.garageSize,
+            roofType: (d.roofType ?? safeParams.roofType) as BlueprintParams["roofType"],
+            foundationType: (d.foundationType ?? safeParams.foundationType) as BlueprintParams["foundationType"],
           }
           setParams((p) => ({ ...p, ...aiData }))
+        } else {
+          const json = await res.json().catch(() => ({}))
+          if (res.status === 403) {
+            // Tier issue — stop and show error
+            setIsRunning(false)
+            setStep(0)
+            setRunError(json.error ?? "Blueprint AI analysis requires a Standard plan or higher.")
+            return
+          }
+          // Non-fatal API error — fall through to manual params
         }
       } catch {
-        // Fall through to manual params
+        // Network error — fall through to manual params
       }
       setProgress(20)
     }
@@ -139,13 +158,21 @@ export function BlueprintTakeoff() {
       if (idx >= 10) {
         clearInterval(intervalRef.current!)
         setTimeout(() => {
-          const bp: BlueprintParams = aiData ? { ...params, ...aiData } : params
-          const calcItems = calculateTakeoff(bp)
-          const calcAudit = runAudit(calcItems, bp)
-          setItems(calcItems)
-          setAudit(calcAudit)
-          setProgress(100)
-          setTimeout(() => setStep(2), 300)
+          try {
+            const bp: BlueprintParams = aiData ? { ...safeParams, ...aiData } : safeParams
+            const calcItems = calculateTakeoff(bp)
+            const calcAudit = runAudit(calcItems, bp)
+            setItems(calcItems)
+            setAudit(calcAudit)
+            setProgress(100)
+            setIsRunning(false)
+            setTimeout(() => setStep(2), 300)
+          } catch (err) {
+            console.error("[BlueprintTakeoff] Calculation error:", err)
+            setIsRunning(false)
+            setStep(0)
+            setRunError(err instanceof Error ? err.message : "Calculation failed. Please try again.")
+          }
         }, 400)
       }
     }, 340)
@@ -153,6 +180,8 @@ export function BlueprintTakeoff() {
 
   function reset() {
     if (intervalRef.current) clearInterval(intervalRef.current)
+    setIsRunning(false)
+    setRunError(null)
     setStep(0)
     setItems([])
     setAudit(null)
@@ -461,13 +490,21 @@ export function BlueprintTakeoff() {
           </div>
         </div>
 
-        <div className="flex justify-center mt-8">
+        {runError && (
+          <div className="mt-6 max-w-lg mx-auto bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-sm text-red-700 flex items-start gap-3">
+            <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <span>{runError}</span>
+          </div>
+        )}
+        <div className="flex justify-center mt-6">
           <button
             onClick={runTakeoff}
-            className="flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold text-[15px] shadow-lg shadow-blue-500/25 hover:-translate-y-0.5 transition-all"
+            disabled={isRunning}
+            className="flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold text-[15px] shadow-lg shadow-blue-500/25 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:hover:translate-y-0 disabled:cursor-not-allowed"
           >
-            ✨ Generate &amp; Audit Takeoff
-            <ChevronRight className="h-4 w-4" />
+            {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {isRunning ? "Running…" : "✨ Generate & Audit Takeoff"}
+            {!isRunning && <ChevronRight className="h-4 w-4" />}
           </button>
         </div>
       </div>
