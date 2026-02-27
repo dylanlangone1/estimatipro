@@ -92,7 +92,7 @@ export function BlueprintTakeoff() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "image/*": [], "application/pdf": [".pdf"] },
-    maxSize: 4 * 1024 * 1024,
+    maxSize: 10 * 1024 * 1024,
     multiple: false,
   })
 
@@ -327,7 +327,7 @@ export function BlueprintTakeoff() {
                   <div>
                     <Upload className="h-8 w-8 text-gray-400 mx-auto mb-3" />
                     <p className="text-sm text-foreground/70">Drop blueprint or click to upload</p>
-                    <p className="text-[10px] text-muted mt-1.5">PDF, PNG, JPG, WEBP · max 4MB — AI reads plans automatically</p>
+                    <p className="text-[10px] text-muted mt-1.5">PDF, PNG, JPG, WEBP · max 10MB — AI reads plans automatically</p>
                   </div>
                 )}
               </div>

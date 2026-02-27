@@ -59,8 +59,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    if (file.size > 4 * 1024 * 1024) {
-      return NextResponse.json({ error: "File too large. Maximum 4MB for blueprint analysis." }, { status: 400 })
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: "File too large. Maximum 10MB for blueprint analysis." }, { status: 400 })
     }
 
     const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
