@@ -277,7 +277,7 @@ export function BlueprintTakeoff() {
                 <span className="text-white">EstimAI</span>{" "}
                 <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">Blueprint Takeoff</span>
               </h1>
-              <p className="text-[10px] font-semibold tracking-widest text-white/40 uppercase">AI-Powered · 7-Layer Validated</p>
+              <p className="text-[10px] font-semibold tracking-widest text-white/55 uppercase">AI-Powered · 7-Layer Validated</p>
             </div>
           </div>
           <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-green-500/15 text-green-400 border border-green-500/25 tracking-wide">
@@ -290,7 +290,7 @@ export function BlueprintTakeoff() {
           <div className="space-y-4">
             {/* Upload */}
             <div className="bg-card border border-card-border rounded-xl p-5">
-              <p className="text-[10px] font-semibold tracking-widest text-white/40 uppercase mb-4 flex items-center gap-2">
+              <p className="text-[10px] font-semibold tracking-widest text-white/60 uppercase mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
                 Blueprint Upload
               </p>
@@ -309,7 +309,7 @@ export function BlueprintTakeoff() {
                   <div>
                     <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
                     <p className="text-sm font-semibold text-green-400">{uploadedFile.name}</p>
-                    <p className="text-[10px] text-white/40 mt-1">
+                    <p className="text-[10px] text-white/60 mt-1">
                       {(uploadedFile.size / 1024).toFixed(0)} KB ·{" "}
                       {uploadedFile.name.toLowerCase().endsWith(".pdf") || uploadedFile.type === "application/pdf" ? "PDF Blueprint" : "Image"} · Ready for AI
                     </p>
@@ -323,29 +323,29 @@ export function BlueprintTakeoff() {
                 ) : (
                   <div>
                     <Upload className="h-8 w-8 text-white/30 mx-auto mb-3" />
-                    <p className="text-sm text-white/60">Drop blueprint or click to upload</p>
-                    <p className="text-[10px] text-white/30 mt-1.5">PDF, PNG, JPG, WEBP · max 4MB — AI reads plans automatically</p>
+                    <p className="text-sm text-white/80">Drop blueprint or click to upload</p>
+                    <p className="text-[10px] text-white/50 mt-1.5">PDF, PNG, JPG, WEBP · max 4MB — AI reads plans automatically</p>
                   </div>
                 )}
               </div>
               {!uploadedFile && (
-                <p className="mt-3 text-[11px] text-white/30 bg-white/3 rounded-lg px-3 py-2.5 leading-relaxed">
-                  <span className="text-white/50 font-medium">No blueprint?</span> Enter specs manually in the fields below.
+                <p className="mt-3 text-[11px] text-white/55 bg-white/5 rounded-lg px-3 py-2.5 leading-relaxed">
+                  <span className="text-white/80 font-medium">No blueprint?</span> Enter specs manually in the fields below.
                 </p>
               )}
             </div>
 
             {/* Project Info */}
             <div className="bg-card border border-card-border rounded-xl p-5">
-              <p className="text-[10px] font-semibold tracking-widest text-white/40 uppercase mb-4 flex items-center gap-2">
+              <p className="text-[10px] font-semibold tracking-widest text-white/60 uppercase mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
                 Project Info
               </p>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-white/40 mb-1.5">Project Name</label>
+                  <label className="block text-[11px] font-medium text-white/65 mb-1.5">Project Name</label>
                   <input
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/10 transition-colors"
+                    className="w-full bg-white/8 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/35 focus:outline-none focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/15 transition-colors"
                     placeholder="e.g. Smith Residence"
                     value={params.projectName ?? ""}
                     onChange={(e) => update("projectName", e.target.value)}
@@ -353,19 +353,19 @@ export function BlueprintTakeoff() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-medium text-white/40 mb-1.5">ZIP Code</label>
+                    <label className="block text-[11px] font-medium text-white/65 mb-1.5">ZIP Code</label>
                     <input
-                      className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-blue-500/60 transition-colors"
+                      className="w-full bg-white/8 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/35 focus:outline-none focus:border-blue-500/70 transition-colors"
                       placeholder="04101"
                       value={params.zipCode ?? ""}
                       onChange={(e) => update("zipCode", e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-medium text-white/40 mb-1.5">Sq Ft</label>
+                    <label className="block text-[11px] font-medium text-white/65 mb-1.5">Sq Ft</label>
                     <input
                       type="number"
-                      className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-colors"
+                      className="w-full bg-white/8 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/70 transition-colors"
                       value={params.sqft}
                       onChange={(e) => update("sqft", +e.target.value)}
                     />
@@ -379,15 +379,15 @@ export function BlueprintTakeoff() {
           <div className="space-y-4">
             {/* Building Specs */}
             <div className="bg-card border border-card-border rounded-xl p-5">
-              <p className="text-[10px] font-semibold tracking-widest text-white/40 uppercase mb-4 flex items-center gap-2">
+              <p className="text-[10px] font-semibold tracking-widest text-white/60 uppercase mb-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
                 Building Specs
               </p>
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <div>
-                  <label className="block text-[11px] font-medium text-white/40 mb-1.5">Stories</label>
+                  <label className="block text-[11px] font-medium text-white/65 mb-1.5">Stories</label>
                   <select
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-colors"
+                    className="w-full bg-white/8 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/70 transition-colors"
                     value={params.stories}
                     onChange={(e) => update("stories", +e.target.value)}
                   >
@@ -396,9 +396,9 @@ export function BlueprintTakeoff() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-white/40 mb-1.5">Beds</label>
+                  <label className="block text-[11px] font-medium text-white/65 mb-1.5">Beds</label>
                   <select
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-colors"
+                    className="w-full bg-white/8 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/70 transition-colors"
                     value={params.bedrooms}
                     onChange={(e) => update("bedrooms", +e.target.value)}
                   >
@@ -406,9 +406,9 @@ export function BlueprintTakeoff() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-white/40 mb-1.5">Baths</label>
+                  <label className="block text-[11px] font-medium text-white/65 mb-1.5">Baths</label>
                   <select
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-colors"
+                    className="w-full bg-white/8 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/70 transition-colors"
                     value={params.bathrooms}
                     onChange={(e) => update("bathrooms", +e.target.value)}
                   >
@@ -418,9 +418,9 @@ export function BlueprintTakeoff() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-white/40 mb-1.5">Foundation</label>
+                  <label className="block text-[11px] font-medium text-white/65 mb-1.5">Foundation</label>
                   <select
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-colors"
+                    className="w-full bg-white/8 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/70 transition-colors"
                     value={params.foundationType}
                     onChange={(e) => update("foundationType", e.target.value as BlueprintParams["foundationType"])}
                   >
@@ -430,9 +430,9 @@ export function BlueprintTakeoff() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-white/40 mb-1.5">Roof</label>
+                  <label className="block text-[11px] font-medium text-white/65 mb-1.5">Roof</label>
                   <select
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-colors"
+                    className="w-full bg-white/8 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/70 transition-colors"
                     value={params.roofType}
                     onChange={(e) => update("roofType", e.target.value as BlueprintParams["roofType"])}
                   >
@@ -442,9 +442,9 @@ export function BlueprintTakeoff() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-white/40 mb-1.5">Garage</label>
+                  <label className="block text-[11px] font-medium text-white/65 mb-1.5">Garage</label>
                   <select
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-colors"
+                    className="w-full bg-white/8 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/70 transition-colors"
                     value={params.garageSize}
                     onChange={(e) => update("garageSize", +e.target.value)}
                   >
@@ -458,11 +458,11 @@ export function BlueprintTakeoff() {
             </div>
 
             {/* 7-Layer Validation info */}
-            <div className="bg-gradient-to-br from-card to-blue-950/30 border border-green-500/20 rounded-xl p-5">
+            <div className="bg-gradient-to-br from-card to-blue-950/30 border border-green-500/30 rounded-xl p-5">
               <p className="text-[10px] font-semibold tracking-widest text-green-400 uppercase mb-3 flex items-center gap-2">
                 <Shield className="h-3.5 w-3.5" /> 7-Layer Validation Engine
               </p>
-              <ul className="space-y-1.5 text-[12px] text-white/50 leading-relaxed">
+              <ul className="space-y-1.5 text-[12px] text-white/70 leading-relaxed">
                 {[
                   "Overall $/SF vs RSMeans national benchmarks",
                   "Per-trade $/SF range validation (11 trades)",
@@ -506,11 +506,11 @@ export function BlueprintTakeoff() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-white">Blueprint Takeoff</h1>
-            <p className="text-[10px] font-semibold tracking-widest text-white/40 uppercase">AI-Powered · 7-Layer Validated</p>
+            <p className="text-[10px] font-semibold tracking-widest text-white/55 uppercase">AI-Powered · 7-Layer Validated</p>
           </div>
         </div>
 
-        <div className="text-center py-16">
+        <div className="text-center py-10">
           <div className="relative w-36 h-36 mx-auto mb-8">
             <svg width="144" height="144" viewBox="0 0 144 144" className="absolute inset-0">
               <defs>
@@ -542,8 +542,32 @@ export function BlueprintTakeoff() {
           <h2 className="text-xl font-bold mb-2 text-white">
             {uploadedFile ? "AI Analyzing Blueprint" : "Computing from Specs"}
           </h2>
-          <p className="text-blue-400 text-sm min-h-5 mb-1">{phase}</p>
-          <p className="text-white/30 text-[12px] animate-pulse">{params.sqft.toLocaleString()} SF</p>
+          <p className="text-blue-400 text-sm min-h-5 mb-1">{phase || (uploadedFile ? "Uploading blueprint…" : "Starting…")}</p>
+          <p className="text-white/50 text-[12px] mb-6 animate-pulse">{params.sqft.toLocaleString()} SF</p>
+
+          {/* Wait-time explanation */}
+          {uploadedFile && progress <= 20 && (
+            <div className="max-w-sm mx-auto bg-blue-500/8 border border-blue-500/20 rounded-xl px-5 py-4 text-left space-y-2.5">
+              <p className="text-[12px] font-semibold text-blue-300 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse inline-block" />
+                Claude Vision is reading your blueprint
+              </p>
+              <p className="text-[11.5px] text-white/55 leading-relaxed">
+                AI image analysis typically takes <span className="text-white/80 font-medium">30–60 seconds</span>.
+                Multi-page PDFs may take <span className="text-white/80 font-medium">up to 5 minutes</span> depending on complexity.
+              </p>
+              <p className="text-[11px] text-white/40 flex items-center gap-1.5">
+                <span>🔒</span>
+                Keep this tab open — results appear automatically when ready.
+              </p>
+            </div>
+          )}
+
+          {uploadedFile && progress > 20 && (
+            <p className="text-[11.5px] text-white/40 max-w-xs mx-auto leading-relaxed">
+              AI extraction complete — computing {items.length > 0 ? "takeoff adjustments" : "material quantities"} &amp; running 7-layer audit…
+            </p>
+          )}
         </div>
       </div>
     )
@@ -562,7 +586,7 @@ export function BlueprintTakeoff() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-white">Blueprint Takeoff</h1>
-            <p className="text-[10px] font-semibold tracking-widest text-white/40 uppercase">AI-Powered · 7-Layer Validated</p>
+            <p className="text-[10px] font-semibold tracking-widest text-white/55 uppercase">AI-Powered · 7-Layer Validated</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -583,7 +607,7 @@ export function BlueprintTakeoff() {
           )}
           <button
             onClick={reset}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/10 text-white/60 text-[12px] font-medium hover:border-white/20 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/20 text-white/70 text-[12px] font-medium hover:border-white/30 hover:text-white transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> New
           </button>
@@ -593,7 +617,7 @@ export function BlueprintTakeoff() {
       {/* Title */}
       <div className="mb-5">
         <h2 className="text-xl font-bold text-white">{params.projectName || "Residential"} — Material Takeoff</h2>
-        <p className="text-[12px] text-white/30 mt-1">
+        <p className="text-[12px] text-white/55 mt-1">
           {params.sqft.toLocaleString()} SF · {params.bedrooms}BR/{params.bathrooms}BA · {items.length} items
         </p>
       </div>
@@ -639,7 +663,7 @@ export function BlueprintTakeoff() {
               </div>
               <div>
                 <p className="text-base font-bold text-white">Score: {audit.score}/100</p>
-                <p className="text-[12px] text-white/40 mt-0.5">
+                <p className="text-[12px] text-white/60 mt-0.5">
                   {audit.errors} errors · {audit.warnings} warnings · {audit.flags.filter((f) => f.level === "pass").length} passed
                 </p>
               </div>
@@ -657,7 +681,7 @@ export function BlueprintTakeoff() {
             </div>
 
             {/* 7 layers */}
-            <p className="text-[10px] font-semibold tracking-widest text-white/30 uppercase mb-3">7 Validation Layers</p>
+            <p className="text-[10px] font-semibold tracking-widest text-white/55 uppercase mb-3">7 Validation Layers</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {audit.layers.map((ly, i) => (
                 <div key={i} className="flex items-start gap-3 bg-black/20 border border-white/6 rounded-lg px-4 py-3">
@@ -669,10 +693,10 @@ export function BlueprintTakeoff() {
                     {ly.status === "pass" ? "✓" : ly.status === "warn" ? "⚠" : "✗"}
                   </div>
                   <div>
-                    <p className="text-[12px] font-semibold text-white/80">
+                    <p className="text-[12px] font-semibold text-white/90">
                       {["①","②","③","④","⑤","⑥","⑦"][i]} {ly.name}
                     </p>
-                    <p className="text-[11px] text-white/35 mt-0.5">{ly.detail}</p>
+                    <p className="text-[11px] text-white/55 mt-0.5">{ly.detail}</p>
                   </div>
                 </div>
               ))}
@@ -682,7 +706,7 @@ export function BlueprintTakeoff() {
           {/* Findings */}
           <div className="bg-card border border-card-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <p className="text-[10px] font-semibold tracking-widest text-white/40 uppercase">Findings ({audit.flags.length})</p>
+              <p className="text-[10px] font-semibold tracking-widest text-white/60 uppercase">Findings ({audit.flags.length})</p>
               <div className="flex gap-2">
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20">{audit.errors} errors</span>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">{audit.warnings} warns</span>
@@ -714,8 +738,8 @@ export function BlueprintTakeoff() {
 
           {/* AI second-pass review */}
           <div className="bg-card border border-card-border rounded-xl p-5">
-            <p className="text-[10px] font-semibold tracking-widest text-white/40 uppercase mb-3">🤖 AI Second-Pass Review</p>
-            <p className="text-[12.5px] text-white/50 mb-4 leading-relaxed">
+            <p className="text-[10px] font-semibold tracking-widest text-white/60 uppercase mb-3">🤖 AI Second-Pass Review</p>
+            <p className="text-[12.5px] text-white/70 mb-4 leading-relaxed">
               Send the entire takeoff to Claude for an independent review — it checks for missing materials, quantity errors, code compliance, and anything an experienced estimator would catch.
             </p>
             {!aiReviewText && (
@@ -757,29 +781,29 @@ export function BlueprintTakeoff() {
                     "linear-gradient(90deg,#a855f7,#6366f1)",
                   ][i]
                 }} />
-                <p className="text-[10px] font-semibold tracking-widest text-white/30 uppercase">{card.label}</p>
+                <p className="text-[10px] font-semibold tracking-widest text-white/55 uppercase">{card.label}</p>
                 <p className={`text-xl font-bold font-mono mt-1.5 ${card.gradient ? "bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent" : "text-white"}`}>
                   {card.value}
                 </p>
-                <p className="text-[10.5px] text-white/30 mt-0.5">{card.sub}</p>
+                <p className="text-[10.5px] text-white/50 mt-0.5">{card.sub}</p>
               </div>
             ))}
           </div>
 
           {/* Trade breakdown */}
           <div className="bg-card border border-card-border rounded-xl p-5">
-            <p className="text-[10px] font-semibold tracking-widest text-white/30 uppercase mb-4">Cost by Trade</p>
+            <p className="text-[10px] font-semibold tracking-widest text-white/55 uppercase mb-4">Cost by Trade</p>
             <div className="space-y-2">
               {Object.entries(catTotals).sort((a, b) => b[1] - a[1]).map(([cat, val]) => (
                 <div key={cat} className="flex items-center gap-3">
-                  <span className="text-[11px] text-white/50 w-24 text-right flex-shrink-0">{cat}</span>
+                  <span className="text-[11px] text-white/70 w-24 text-right flex-shrink-0">{cat}</span>
                   <div className="flex-1 h-[18px] bg-white/5 rounded-sm overflow-hidden">
                     <div
                       className="h-full rounded-sm bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-700"
                       style={{ width: `${(val / maxCatTotal) * 100}%` }}
                     />
                   </div>
-                  <span className="text-[10.5px] font-mono text-white/40 w-20 flex-shrink-0">{fmt(val)}</span>
+                  <span className="text-[10.5px] font-mono text-white/65 w-20 flex-shrink-0">{fmt(val)}</span>
                 </div>
               ))}
             </div>
@@ -795,7 +819,7 @@ export function BlueprintTakeoff() {
                   className={`px-3 py-1 rounded-full text-[11px] font-medium border transition-colors ${
                     categoryFilter === c
                       ? "bg-blue-500 border-blue-500 text-white"
-                      : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/70"
+                      : "border-white/20 text-white/60 hover:border-white/30 hover:text-white/80"
                   }`}
                 >
                   {c}{c !== "All" ? ` (${items.filter((r) => r.cat === c).length})` : ""}
@@ -803,7 +827,7 @@ export function BlueprintTakeoff() {
               ))}
             </div>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] text-white/30 uppercase tracking-wider">Sort:</span>
+              <span className="text-[10px] text-white/55 uppercase tracking-wider">Sort:</span>
               {([["category", "Category"], ["cost", "Cost ↓"], ["confidence", "Low Conf"], ["flags", "Flagged"]] as const).map(([val, label]) => (
                 <button
                   key={val}
@@ -811,7 +835,7 @@ export function BlueprintTakeoff() {
                   className={`px-2.5 py-1 rounded-full text-[10.5px] font-medium border transition-colors ${
                     sortBy === val
                       ? "bg-blue-500 border-blue-500 text-white"
-                      : "border-white/10 text-white/40 hover:border-white/20"
+                      : "border-white/20 text-white/60 hover:border-white/30"
                   }`}
                 >
                   {label}
@@ -826,7 +850,7 @@ export function BlueprintTakeoff() {
               <thead>
                 <tr className="border-b border-white/8 bg-black/20">
                   {["Material", "Qty", "Unit $", "Conf", "Total", ""].map((h, i) => (
-                    <th key={i} className={`px-4 py-3 text-[10px] font-semibold tracking-wider text-white/30 uppercase text-left ${i === 4 ? "text-right" : ""} ${i === 5 ? "w-14 text-center" : ""}`}>
+                    <th key={i} className={`px-4 py-3 text-[10px] font-semibold tracking-wider text-white/55 uppercase text-left ${i === 4 ? "text-right" : ""} ${i === 5 ? "w-14 text-center" : ""}`}>
                       {h}
                     </th>
                   ))}
@@ -850,7 +874,7 @@ export function BlueprintTakeoff() {
                           )}
                           <div>
                             <p className="text-[12.5px] font-medium text-white/85">{it.name}</p>
-                            <p className="text-[10px] text-white/30">{it.cat}</p>
+                            <p className="text-[10px] text-white/50">{it.cat}</p>
                           </div>
                         </div>
                       </td>
@@ -865,9 +889,9 @@ export function BlueprintTakeoff() {
                             onKeyDown={(e) => { if (e.key === "Enter") updateQty(it.lid, +(e.target as HTMLInputElement).value || it.quantity) }}
                           />
                         ) : (
-                          <span className="font-mono text-[12.5px] text-white/70">
+                          <span className="font-mono text-[12.5px] text-white/80">
                             {it.quantity.toLocaleString()}
-                            <span className="text-white/30 text-[10px] ml-1">{it.unit}</span>
+                            <span className="text-white/50 text-[10px] ml-1">{it.unit}</span>
                             {it.quantity !== it.rawQty && (
                               <span className="text-amber-400 text-[9px] ml-1.5">+{Math.round((it.waste - 1) * 100)}%</span>
                             )}
@@ -875,8 +899,8 @@ export function BlueprintTakeoff() {
                         )}
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className="font-mono text-[12.5px] text-white/50">
-                          {fmt2(it.cost)}<span className="text-white/25 text-[10px]">/{it.unit}</span>
+                        <span className="font-mono text-[12.5px] text-white/70">
+                          {fmt2(it.cost)}<span className="text-white/45 text-[10px]">/{it.unit}</span>
                         </span>
                       </td>
                       <td className="px-4 py-2.5">
@@ -916,14 +940,14 @@ export function BlueprintTakeoff() {
 
           {/* Footer actions */}
           <div className="flex items-center justify-between bg-card border border-card-border rounded-xl px-5 py-4 flex-wrap gap-3">
-            <div className="text-[12.5px] text-white/40">
+            <div className="text-[12.5px] text-white/65">
               Total:{" "}
               <span className="text-white text-[17px] font-bold font-mono">{fmt(grandTotal)}</span>
             </div>
             <div className="flex items-center gap-2.5 flex-wrap">
               <button
                 onClick={exportCSV}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-white/12 text-white/60 text-[12.5px] font-medium hover:border-white/20 hover:text-white transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-white/20 text-white/70 text-[12.5px] font-medium hover:border-white/30 hover:text-white transition-colors"
               >
                 <Download className="h-3.5 w-3.5" /> CSV
               </button>

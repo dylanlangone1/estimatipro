@@ -4,7 +4,8 @@ import { requireFeature } from "@/lib/tiers"
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { extractJson } from "@/lib/ai/json-utils"
 
-export const maxDuration = 60
+// PDFs with many pages can take 2–5 min; raise timeout accordingly
+export const maxDuration = 300
 
 const BLUEPRINT_PROMPT = `You are an expert residential construction estimator. Analyze this blueprint/floor plan image or PDF.
 
@@ -86,16 +87,19 @@ export async function POST(req: Request) {
           },
         })
 
-    const response = await anthropic.messages.create({
-      model: AI_MODEL,
-      max_tokens: 4000,
-      messages: [
-        {
-          role: "user",
-          content: [contentBlock, { type: "text", text: BLUEPRINT_PROMPT }],
-        },
-      ],
-    })
+    const response = await anthropic.messages.create(
+      {
+        model: AI_MODEL,
+        max_tokens: 4000,
+        messages: [
+          {
+            role: "user",
+            content: [contentBlock, { type: "text", text: BLUEPRINT_PROMPT }],
+          },
+        ],
+      },
+      { timeout: 280_000 } // 280 s — just under Vercel maxDuration of 300 s
+    )
 
     const text = response.content
       .map((b) => (b.type === "text" ? b.text : ""))

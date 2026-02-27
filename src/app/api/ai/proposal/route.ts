@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { requireFeature } from "@/lib/tiers"
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { withRetry, LIGHT_RETRY } from "@/lib/ai/retry-utils"
+import { extractJson } from "@/lib/ai/json-utils"
 import type { ProposalData } from "@/types/proposal"
 
 // Proposal generation via AI can take 30–60 s
@@ -214,14 +215,10 @@ Rules: one scopeOfWork entry per category from the line items. All text must be 
 
     const text =
       response.content[0].type === "text" ? response.content[0].text : ""
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      throw new Error("Could not parse proposal response")
-    }
 
     let aiGenerated: Record<string, unknown>
     try {
-      aiGenerated = JSON.parse(jsonMatch[0])
+      aiGenerated = JSON.parse(extractJson(text))
     } catch {
       throw new Error("AI returned malformed JSON for proposal")
     }
@@ -255,8 +252,9 @@ Rules: one scopeOfWork entry per category from the line items. All text must be 
     })
   } catch (error) {
     console.error("Proposal generation error:", error)
+    const msg = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { error: "Failed to generate proposal" },
+      { error: `Failed to generate proposal: ${msg.slice(0, 200)}` },
       { status: 500 }
     )
   }
@@ -447,10 +445,10 @@ Return ONLY a JSON object: {"investmentSummary": "the text"}`,
   )
 
   const text = response.content[0].type === "text" ? response.content[0].text : ""
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
-    throw new Error(`Could not parse regenerated ${section}`)
-  }
 
-  return JSON.parse(jsonMatch[0])
+  try {
+    return JSON.parse(extractJson(text))
+  } catch {
+    throw new Error(`Could not parse regenerated ${section} — AI returned malformed JSON`)
+  }
 }
