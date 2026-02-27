@@ -189,7 +189,7 @@ ${estimate.client ? `Client: ${estimate.client.name}` : ""}`
       () => anthropic.messages.create(
         {
           model: AI_MODEL,
-          max_tokens: 3000,
+          max_tokens: 6000,
           messages: [
             {
               role: "user",
@@ -208,7 +208,7 @@ Rules: one scopeOfWork entry per category from the line items. All text must be 
             },
           ],
         },
-        { timeout: 60_000 }, // 60s — prevents loading forever on hung connections
+        { timeout: 90_000 }, // 90s — larger output needs more time
       ),
       LIGHT_RETRY,
     )
@@ -220,6 +220,7 @@ Rules: one scopeOfWork entry per category from the line items. All text must be 
     try {
       aiGenerated = JSON.parse(extractJson(text))
     } catch {
+      console.error("[proposal] JSON parse failed. Raw AI text (first 500 chars):", text.slice(0, 500))
       throw new Error("AI returned malformed JSON for proposal")
     }
 
@@ -449,6 +450,7 @@ Return ONLY a JSON object: {"investmentSummary": "the text"}`,
   try {
     return JSON.parse(extractJson(text))
   } catch {
+    console.error(`[proposal-regenerate:${section}] JSON parse failed. Raw AI text (first 500 chars):`, text.slice(0, 500))
     throw new Error(`Could not parse regenerated ${section} — AI returned malformed JSON`)
   }
 }

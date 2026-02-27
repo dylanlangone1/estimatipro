@@ -8,6 +8,7 @@ import { parseSupplierInvoice } from "@/lib/ai/supplier-invoice-parser"
 import { updateMaterialLibrary } from "@/lib/ai/material-library-engine"
 import { extractAndSaveBrands } from "@/lib/ai/brand-extraction-engine"
 import { recalculatePricingDNA } from "@/lib/ai/pricing-dna-engine"
+import { rateLimit } from "@/lib/rate-limit"
 
 // Document parsing + multi-step AI pipeline can take 30–60 s
 export const maxDuration = 300
@@ -26,6 +27,15 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Document parsing requires a Standard plan or higher." },
         { status: 403 }
+      )
+    }
+
+    // Rate limit: 10 document parses per minute per user
+    const { allowed } = rateLimit(`parse-doc:${session.user.id}`, 10, 60_000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a minute and try again." },
+        { status: 429 }
       )
     }
 

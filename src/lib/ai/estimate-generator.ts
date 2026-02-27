@@ -17,10 +17,11 @@ export async function generateEstimate(
   const args = [description, pricingDna, trades, materialPrices, systemPrompt, qualityLevel, brandContext] as const
 
   try {
-    // Faster retry delays for estimates (users are actively waiting)
+    // No retries for Sonnet — fail fast and fall to Haiku immediately.
+    // Retrying at 90s each burns 276s total and hits the Vercel timeout.
     const result = await withRetry("estimate-generator", () =>
       runGeneration(AI_MODEL, ...args),
-      { maxRetries: 2, delays: [1500, 5000] },
+      { maxRetries: 0 },
     )
     return { ...result, _modelUsed: AI_MODEL }
   } catch (primaryErr) {
@@ -35,7 +36,7 @@ export async function generateEstimate(
       const result = await withRetry(
         "estimate-generator-haiku",
         () => runGeneration(AI_FALLBACK_MODEL, ...args),
-        { maxRetries: 2, delays: [1000, 3000] },
+        { maxRetries: 1, delays: [3000] },
       )
       return { ...result, _modelUsed: AI_FALLBACK_MODEL }
     } catch (fallbackErr) {
@@ -59,13 +60,7 @@ async function runGeneration(
     {
       model,
       max_tokens: 12000,
-      system: [
-        {
-          type: "text" as const,
-          text: systemPrompt || ESTIMATE_SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" as const },
-        },
-      ],
+      system: systemPrompt || ESTIMATE_SYSTEM_PROMPT,
       messages: [
         {
           role: "user",

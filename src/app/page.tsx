@@ -31,14 +31,14 @@ export default function LandingPage() {
       <section className="px-6 sm:px-12 py-20 sm:py-32 text-center max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-brand-orange/10 rounded-full mb-6">
           <Sparkles className="h-4 w-4 text-brand-orange" />
-          <span className="text-brand-orange text-sm font-medium">AI-Powered Construction Estimating</span>
+          <span className="text-brand-orange text-sm font-medium">Built by a New Home Builder · AI-Powered Estimating</span>
         </div>
         <h1 className="text-4xl sm:text-6xl font-bold text-white leading-tight mb-6">
           Stop Guessing.<br />
           <span className="text-brand-orange">Start Knowing.</span>
         </h1>
         <p className="text-white/60 text-lg sm:text-xl max-w-2xl mx-auto mb-8">
-          The AI that learns YOUR pricing and makes you better at every estimate. Describe a job, get a detailed estimate in seconds. Upload your history, and the AI learns your style.
+          Designed and built by a new home builder who got tired of guessing. The AI that learns YOUR pricing — describe a job, get a detailed estimate in seconds. Upload your history, and it learns your style.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href="/register">
@@ -183,7 +183,7 @@ export default function LandingPage() {
       <section className="px-6 sm:px-12 py-16 bg-brand-charcoal">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-white/40 text-lg italic">
-            &ldquo;Built by a contractor who was tired of spreadsheets and $500/month software that doesn&apos;t learn a damn thing.&rdquo;
+            &ldquo;Built by a new home builder who was tired of spreadsheets and $500/month software that doesn&apos;t learn a damn thing. So I built the tool I always wished existed.&rdquo;
           </p>
         </div>
       </section>
@@ -194,7 +194,7 @@ export default function LandingPage() {
           Ready to estimate smarter?
         </h2>
         <p className="text-white/50 mb-8 max-w-md mx-auto">
-          Join contractors who are saving hours on every estimate.
+          Join home builders and contractors saving hours on every estimate.
         </p>
         <Link href="/register">
           <Button size="lg" className="text-base px-8">

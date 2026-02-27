@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { requireFeature } from "@/lib/tiers"
 import { anthropic, AI_MODEL } from "@/lib/anthropic"
 import { extractJson } from "@/lib/ai/json-utils"
+import { rateLimit } from "@/lib/rate-limit"
 
 // Typical response time after client-side resize: 8–20s; 60s is a safe ceiling
 export const maxDuration = 60
@@ -49,6 +50,15 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Blueprint takeoff is available on the Free Trial and Max plans." },
         { status: 403 }
+      )
+    }
+
+    // Rate limit: 5 blueprint analyses per minute per user
+    const { allowed } = rateLimit(`blueprint:${session.user.id}`, 5, 60_000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a minute and try again." },
+        { status: 429 }
       )
     }
 

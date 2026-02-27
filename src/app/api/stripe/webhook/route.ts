@@ -39,7 +39,7 @@ export async function POST(req: Request) {
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
           const item = subscription.items.data[0]
-          const priceId = item?.price.id
+          const priceId = item?.price?.id
           const tier = PRICE_TO_TIER[priceId] || "STANDARD"
 
           await prisma.user.update({
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       case "customer.subscription.updated": {
         const subscription = event.data.object
         const item = subscription.items.data[0]
-        const priceId = item?.price.id
+        const priceId = item?.price?.id
         const tier = PRICE_TO_TIER[priceId] || "STANDARD"
 
         await prisma.user.update({

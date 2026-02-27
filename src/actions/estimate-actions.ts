@@ -15,6 +15,7 @@ export async function getEstimates() {
       client: { select: { name: true } },
     },
     orderBy: { updatedAt: "desc" },
+    take: 100,
   })
 }
 

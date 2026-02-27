@@ -24,16 +24,16 @@ import { runAudit } from "@/lib/takeoff/audit-engine"
 import type { TakeoffItem, BlueprintParams, AuditResult } from "@/types/takeoff"
 
 const ANALYSIS_PHASES = [
-  "Waking up the AI… (it's grumpy before coffee)",
-  "Counting walls so you don't have to…",
-  "Arguing with pixels about where the kitchen is…",
-  "Convincing Claude that's a door, not a window…",
-  "Calculating how many 2×6s fit in one truck…",
-  "Bribing the blueprint to reveal its secrets…",
-  "Cross-referencing with 1,000 past builds…",
-  "Applying waste factors (builders waste EVERYTHING)…",
-  "Running 7-layer audit… almost there!",
-  "Polishing the numbers… stand by…",
+  "Computing foundation quantities — concrete, rebar & vapor barrier…",
+  "Framing exterior walls — 2×6 studs, plates & headers at 16\u2033 OC…",
+  "Framing interior partitions — 2×4 stud count & plate lengths…",
+  "Sizing roof structure — trusses, ridge board & OSB sheathing deck…",
+  "Quantifying roofing — shingles, underlayment & ice & water shield…",
+  "Counting windows, doors & sizing electrical rough-in…",
+  "Computing plumbing rough-in — PEX supply lines, PVC drain & fixtures…",
+  "Sizing HVAC — furnace, A/C condenser, duct runs & registers…",
+  "Calculating drywall, insulation, finishes & flooring quantities…",
+  "Running 7-layer validation audit against RSMeans benchmarks…",
 ]
 
 const DEFAULT_PARAMS: BlueprintParams = {
@@ -386,14 +386,17 @@ export function BlueprintTakeoff() {
       `Review for: missing items, wrong quantities, code issues, duplicates. Be specific and concise.`
 
     try {
-      // M9: 20-second timeout for AI review
       const res  = await fetchWithTimeout(
-        "/api/ai/wizard",
+        "/api/ai/blueprint-review",
         { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: summary }) },
-        20_000
+        30_000
       )
       const json = await res.json()
-      setAiReviewText(json.answer ?? json.reply ?? "AI review unavailable.")
+      if (!res.ok) {
+        setAiReviewText(json.error ?? "AI review unavailable. Please try again.")
+      } else {
+        setAiReviewText(json.answer ?? "AI review unavailable.")
+      }
     } catch {
       setAiReviewText("AI review unavailable. Please try again.")
     }

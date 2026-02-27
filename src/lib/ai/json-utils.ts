@@ -3,7 +3,8 @@
  * Handles:
  *   - Raw JSON (ideal case)
  *   - Triple-backtick fenced blocks (```json ... ```)
- *   - JSON embedded inside prose (finds first '{' to last '}')
+ *   - JSON embedded inside prose (finds first '{', matches closing '}')
+ *   - Trailing prose after the JSON object
  *   - Whitespace, BOM characters, and other cruft
  */
 export function extractJson(raw: string): string {
@@ -16,16 +17,29 @@ export function extractJson(raw: string): string {
   const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)
   if (fenceMatch) return fenceMatch[1].trim()
 
-  // Case 2: starts with '{' — already bare JSON
-  if (text.startsWith("{")) return text
-
-  // Case 3: JSON object is embedded somewhere in the text
+  // Find the start of the JSON object
   const start = text.indexOf("{")
-  const end = text.lastIndexOf("}")
-  if (start !== -1 && end !== -1 && end > start) {
-    return text.slice(start, end + 1)
+  if (start === -1) return text // nothing to extract — let JSON.parse surface the error
+
+  // Use brace-counting to find the matching closing brace.
+  // Correctly handles: nested objects, `}` inside string values, escape sequences.
+  let depth = 0
+  let inString = false
+  let escape = false
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i]
+    if (escape) { escape = false; continue }
+    if (ch === "\\") { escape = true; continue }
+    if (ch === '"') { inString = !inString; continue }
+    if (inString) continue
+    if (ch === "{") depth++
+    else if (ch === "}") {
+      depth--
+      if (depth === 0) return text.slice(start, i + 1)
+    }
   }
 
-  // Case 4: nothing found — return original and let JSON.parse surface the error
-  return text
+  // No matching closing brace (truncated JSON) — return from start to end
+  // and let JSON.parse surface the error with useful context.
+  return text.slice(start)
 }

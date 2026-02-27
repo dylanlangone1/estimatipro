@@ -13,8 +13,8 @@ import { getBrandContext } from "@/lib/ai/brand-extraction-engine"
 import { buildDescriptionFromGuided, buildDescriptionFromManual } from "@/lib/ai/description-builder"
 import { rateLimit } from "@/lib/rate-limit"
 
-// 90s timeout + 1 retry = 180s worst case; 150s is a practical ceiling
-export const maxDuration = 150
+// 90s Sonnet (1 try) + 90s Haiku (up to 2 tries) + 3s wait + buffer = 220s ceiling
+export const maxDuration = 220
 
 export async function POST(req: Request) {
   try {

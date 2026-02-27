@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
+import { timingSafeEqual, createHash } from "crypto"
 import { prisma } from "@/lib/prisma"
+import { rateLimit } from "@/lib/rate-limit"
 
 /**
  * Admin endpoint to create and list promo codes.
@@ -15,11 +17,24 @@ import { prisma } from "@/lib/prisma"
 function checkAuth(request: Request): boolean {
   const secret = process.env.ADMIN_SECRET
   if (!secret) return false
-  const auth = request.headers.get("authorization")
-  return auth === `Bearer ${secret}`
+  const auth = request.headers.get("authorization") ?? ""
+  const expected = `Bearer ${secret}`
+  // Length check first to avoid leaking timing info on length mismatch
+  if (auth.length !== expected.length) return false
+  return timingSafeEqual(
+    createHash("sha256").update(auth).digest(),
+    createHash("sha256").update(expected).digest()
+  )
 }
 
 export async function POST(request: Request) {
+  // Rate limit admin endpoints to prevent brute-force on the secret
+  const ip = request.headers.get("x-forwarded-for") ?? "admin"
+  const { allowed } = rateLimit(`admin-promo:${ip}`, 5, 60_000)
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 })
+  }
+
   if (!checkAuth(request)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 })
   }
@@ -53,6 +68,12 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  const ip = request.headers.get("x-forwarded-for") ?? "admin"
+  const { allowed } = rateLimit(`admin-promo:${ip}`, 5, 60_000)
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 })
+  }
+
   if (!checkAuth(request)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 })
   }

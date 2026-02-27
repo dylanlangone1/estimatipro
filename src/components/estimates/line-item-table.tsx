@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/components/ui/toast"
@@ -46,16 +46,18 @@ export function LineItemTable({
   editable = false,
   estimateId,
 }: LineItemTableProps) {
-  const grouped = groupByCategory(lineItems)
-  const categories = Object.keys(grouped)
-
-  // Compute startIndex offset for each category group (for stagger animation)
-  let globalIndex = 0
-  const categoryOffsets: Record<string, number> = {}
-  for (const category of categories) {
-    categoryOffsets[category] = globalIndex
-    globalIndex += 1 + grouped[category].length + 1
-  }
+  const { grouped, categories, categoryOffsets } = useMemo(() => {
+    const grouped = groupByCategory(lineItems)
+    const categories = Object.keys(grouped)
+    // Compute startIndex offset for each category group (for stagger animation)
+    let globalIndex = 0
+    const categoryOffsets: Record<string, number> = {}
+    for (const category of categories) {
+      categoryOffsets[category] = globalIndex
+      globalIndex += 1 + grouped[category].length + 1
+    }
+    return { grouped, categories, categoryOffsets }
+  }, [lineItems])
 
   return (
     <div className="overflow-x-auto">

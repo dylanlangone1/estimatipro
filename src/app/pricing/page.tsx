@@ -88,7 +88,7 @@ export default function PricingPage() {
             Simple, Transparent Pricing
           </h1>
           <p className="text-white/50 max-w-xl mx-auto">
-            Every plan includes a 7-day free trial with <span className="text-brand-orange font-medium">full MAX access</span> — try every feature. Card required, cancel anytime.
+            Designed by a new home builder. Every plan includes a 7-day free trial with <span className="text-brand-orange font-medium">full MAX access</span> — try every feature. Card required, cancel anytime.
           </p>
         </div>
 
