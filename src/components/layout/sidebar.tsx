@@ -19,6 +19,7 @@ import {
   Palette,
   ArrowUpCircle,
   BarChart2,
+  Ruler,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -37,6 +38,7 @@ const navigation: NavItem[] = [
   { name: "New Estimate", href: "/estimate/new", icon: Plus },
   { name: "My Estimates", href: "/estimates", icon: FileText },
   { name: "Upload History", href: "/upload", icon: Upload, requiredTier: "STANDARD" },
+  { name: "Blueprint Takeoff", href: "/blueprint", icon: Ruler, requiredTier: "STANDARD" },
   { name: "Intelligence", href: "/intelligence", icon: Brain, requiredTier: "STANDARD" },
   { name: "AI Training", href: "/admin/training", icon: GraduationCap, requiredTier: "STANDARD" },
   { name: "Clients", href: "/clients", icon: Users, requiredTier: "PRO" },
