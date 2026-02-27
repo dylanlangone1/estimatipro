@@ -1,9 +1,23 @@
 import type { TakeoffItem, BlueprintParams, AuditResult, AuditFlag, AuditLayer } from "@/types/takeoff"
 
 export function runAudit(items: TakeoffItem[], params: Pick<BlueprintParams, "sqft" | "bathrooms" | "bedrooms" | "stories">): AuditResult {
-  const sq = params.sqft ?? 2000
+  // C2: Guard empty items — return a clear D grade instead of NaN/Infinity
+  if (items.length === 0) {
+    const emptyLayers: AuditLayer[] = [
+      "Overall $/SF Benchmark", "Trade $/SF Ranges", "Cross-Trade Consistency",
+      "Quantity Ratio Checks", "Completeness Check", "Item Reasonableness", "Waste Factor Audit",
+    ].map((name) => ({ name, status: "fail" as const, detail: "No data" }))
+    return {
+      flags: [{ level: "error", layer: 5, message: "No items in takeoff. Generate a takeoff first." }],
+      layers: emptyLayers,
+      score: 0, grade: "D", itemFlags: {}, errors: 1, warnings: 0,
+    }
+  }
+
+  const sq    = Math.max(1, params.sqft ?? 2000)  // C2: guard div/0
   const baths = params.bathrooms ?? 2
-  const beds = params.bedrooms ?? 3
+  const beds  = params.bedrooms ?? 3
+  const stories = params.stories ?? 1              // H3: extract stories for smoke detector check
 
   const flags: AuditFlag[] = []
   const layers: AuditLayer[] = []
@@ -11,6 +25,7 @@ export function runAudit(items: TakeoffItem[], params: Pick<BlueprintParams, "sq
 
   const materialTotal = items.reduce((s, r) => s + r.totalCost, 0)
   const grandTotal = (materialTotal + materialTotal * 1.35) * 1.18
+  // C2: sq is already clamped to min 1 above
   const psf = grandTotal / sq
 
   const catTotals: Record<string, number> = {}
@@ -41,23 +56,27 @@ export function runAudit(items: TakeoffItem[], params: Pick<BlueprintParams, "sq
 
   // Layer 2: Per-trade $/SF ranges
   const benchmarks: Record<string, [number, number]> = {
-    Foundation: [3, 12],
-    Framing: [12, 35],
-    Exterior: [4, 14],
-    Roofing: [2, 10],
-    Drywall: [2, 8],
-    Insulation: [1, 5],
+    Foundation:      [3, 12],
+    Framing:         [12, 35],
+    Exterior:        [4, 14],
+    Roofing:         [2, 10],
+    Drywall:         [2, 8],
+    Insulation:      [1, 5],
     "Doors/Windows": [3, 15],
-    Electrical: [4, 16],
-    Plumbing: [5, 20],
-    HVAC: [5, 22],
-    Finishes: [8, 30],
+    Electrical:      [4, 16],
+    Plumbing:        [5, 20],
+    HVAC:            [5, 22],
+    Finishes:        [8, 30],
   }
   let l2Warnings = 0
   Object.entries(benchmarks).forEach(([cat, [lo, hi]]) => {
-    const c = catTotals[cat] ?? 0
+    const c    = catTotals[cat] ?? 0
     const cpsf = c / sq
-    if (cpsf < lo * 0.5) {
+    // M4: Explicitly flag $0 trades (distinct from just being low)
+    if (c === 0) {
+      l2Warnings++
+      flags.push({ level: "error", layer: 2, message: `${cat} has $0 — all items missing or removed. Expected $${lo}–$${hi}/SF.` })
+    } else if (cpsf < lo * 0.5) {
       l2Warnings++
       flags.push({ level: "error", layer: 2, message: `${cat} is $${cpsf.toFixed(2)}/SF — below $${lo}–$${hi} benchmark. Missing items likely.` })
     } else if (cpsf < lo) {
@@ -78,9 +97,9 @@ export function runAudit(items: TakeoffItem[], params: Pick<BlueprintParams, "sq
   let l3Warnings = 0
   const toilets = getQty("pl06")
   const vanities = getQty("pl07")
-  const exhaust = getQty("hv10")
-  const smoke = getQty("el12")
-  const gfci = getQty("el05")
+  const exhaust  = getQty("hv10")
+  const smoke    = getQty("el12")
+  const gfci     = getQty("el05")
 
   if (toilets !== Math.round(baths)) {
     l3Warnings++
@@ -94,16 +113,20 @@ export function runAudit(items: TakeoffItem[], params: Pick<BlueprintParams, "sq
     l3Warnings++
     flags.push({ level: "warn", layer: 3, message: `Exhaust fans (${exhaust}) ≠ bathrooms (${Math.round(baths)}). Code requires 1 per bath.` })
   }
-  if (smoke < beds + 1) {
+  // H3: smoke detector check includes stories (IRC: 1 per bedroom + 1 per floor + 1 common)
+  const smokeNeeded = beds + stories + 1
+  if (smoke < smokeNeeded) {
     l3Warnings++
-    flags.push({ level: "warn", layer: 3, message: `Smoke detectors (${smoke}) < minimum (${beds} bedrooms + 1 per floor = ${beds + 1}).` })
+    flags.push({ level: "warn", layer: 3, message: `Smoke detectors (${smoke}) < code minimum (${smokeNeeded}): ${beds} bedrooms + ${stories} floor(s) + 1 common.` })
   }
-  if (gfci < baths + 2) {
+  // H2: GFCI code minimum — 1 per bath + 2 kitchen + 1 garage + 1 exterior + 1 laundry
+  const gfciNeeded = Math.round(baths) + 5
+  if (gfci < gfciNeeded) {
     l3Warnings++
-    flags.push({ level: "warn", layer: 3, message: `GFCIs (${gfci}) seem low. Need: ${Math.round(baths)} bath + 2 kitchen + 1 garage + 1 ext = ${Math.round(baths) + 4}.` })
+    flags.push({ level: "warn", layer: 3, message: `GFCIs (${gfci}) below NEC minimum (${gfciNeeded}): ${Math.round(baths)} bath + 2 kitchen + 1 garage + 1 ext + 1 laundry.` })
   }
   if (l3Warnings === 0) {
-    flags.push({ level: "pass", layer: 3, message: "All cross-trade fixture counts match." })
+    flags.push({ level: "pass", layer: 3, message: "All cross-trade fixture counts match code requirements." })
   }
   layers.push({
     name: "Cross-Trade Consistency",
@@ -125,7 +148,7 @@ export function runAudit(items: TakeoffItem[], params: Pick<BlueprintParams, "sq
     l4Warnings++
     flags.push({ level: "warn", layer: 4, message: `Nail boxes (${nails}) low for ${studs} studs. ~1 box per 200 studs.` })
   }
-  const paint = getQty("fn01")
+  const paint  = getQty("fn01")
   const primer = getQty("fn02")
   if (paint > 0 && primer < Math.ceil(paint * 0.6)) {
     l4Warnings++
@@ -142,8 +165,8 @@ export function runAudit(items: TakeoffItem[], params: Pick<BlueprintParams, "sq
 
   // Layer 5: Completeness
   const requiredTrades = ["Foundation", "Framing", "Exterior", "Roofing", "Drywall", "Insulation", "Doors/Windows", "Electrical", "Plumbing", "HVAC", "Finishes"]
-  const presentTrades = Object.keys(catTotals)
-  const missingTrades = requiredTrades.filter((t) => !presentTrades.includes(t))
+  const presentTrades  = Object.keys(catTotals)
+  const missingTrades  = requiredTrades.filter((t) => !presentTrades.includes(t))
   if (missingTrades.length > 0) {
     flags.push({ level: "error", layer: 5, message: `Missing trades: ${missingTrades.join(", ")}.` })
   } else {
@@ -193,26 +216,28 @@ export function runAudit(items: TakeoffItem[], params: Pick<BlueprintParams, "sq
       flags.push({ level: "info", layer: 7, message: `${it.name} has ${wastePercent}% waste factor (above average).` })
     }
   })
+  // C2: Guard waste % calculation (materialTotal could be 0 if all items removed)
+  const wastePct = materialTotal > 0 ? ((totalWasteCost / materialTotal) * 100).toFixed(1) : "0.0"
   flags.push({
     level: "info",
     layer: 7,
-    message: `Total waste cost: $${Math.round(totalWasteCost).toLocaleString()} (${((totalWasteCost / materialTotal) * 100).toFixed(1)}% of materials).`,
+    message: `Total waste cost: $${Math.round(totalWasteCost).toLocaleString()} (${wastePct}% of materials).`,
   })
   layers.push({
     name: "Waste Factor Audit",
     status: l7Warnings > 5 ? "warn" : "pass",
-    detail: `$${Math.round(totalWasteCost).toLocaleString()} waste (${((totalWasteCost / materialTotal) * 100).toFixed(1)}%)`,
+    detail: `$${Math.round(totalWasteCost).toLocaleString()} waste (${wastePct}%)`,
   })
 
-  const errors = flags.filter((f) => f.level === "error").length
+  const errors   = flags.filter((f) => f.level === "error").length
   const warnings = flags.filter((f) => f.level === "warn").length
-  const score = Math.max(0, Math.min(100, 100 - errors * 12 - warnings * 4))
+  const score    = Math.max(0, Math.min(100, 100 - errors * 12 - warnings * 4))
 
   return {
     flags,
     layers,
     score,
-    grade: score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : "D",
+    grade:    score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : "D",
     itemFlags,
     errors,
     warnings,

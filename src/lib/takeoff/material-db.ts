@@ -57,6 +57,7 @@ export const MATERIAL_DB: MaterialDB = {
     { id: "dw05", name: "Bi-fold Closet Door", unit: "EA", cost: 95, cat: "Doors/Windows", waste: 1.0 },
     { id: "dw06", name: "Double-Hung Window", unit: "EA", cost: 285, cat: "Doors/Windows", waste: 1.0 },
     { id: "dw10", name: "Garage Door 16x7", unit: "EA", cost: 1250, cat: "Doors/Windows", waste: 1.0 },
+    { id: "dw11", name: "Garage Door 9x7",  unit: "EA", cost: 850,  cat: "Doors/Windows", waste: 1.0 },
   ],
   electrical: [
     { id: "el01", name: "14/2 NM-B Wire", unit: "LF", cost: 0.65, cat: "Electrical", waste: 1.15 },

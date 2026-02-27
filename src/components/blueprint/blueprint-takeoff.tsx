@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useDropzone } from "react-dropzone"
 import {
@@ -17,6 +17,7 @@ import {
   Shield,
   Ruler,
   Loader2,
+  Printer,
 } from "lucide-react"
 import { calculateTakeoff } from "@/lib/takeoff/calc-engine"
 import { runAudit } from "@/lib/takeoff/audit-engine"
@@ -55,6 +56,23 @@ function fmt2(n: number) {
   return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+// C5: CSV injection sanitization — prefix formula-starting characters with a single quote
+function sanitizeCSV(val: string): string {
+  const s = String(val)
+  if (/^[=+\-@\t\r]/.test(s)) return "'" + s
+  return s.replace(/"/g, '""')
+}
+
+// M9: fetch with timeout (ms) — rejects if server doesn't respond in time
+function fetchWithTimeout(url: string, opts: RequestInit, ms: number): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Request timed out after " + ms / 1000 + "s")), ms)
+    fetch(url, opts)
+      .then((r) => { clearTimeout(timer); resolve(r) })
+      .catch((e) => { clearTimeout(timer); reject(e) })
+  })
+}
+
 export function BlueprintTakeoff() {
   const router = useRouter()
   const [step, setStep] = useState<0 | 1 | 2>(0)
@@ -74,7 +92,24 @@ export function BlueprintTakeoff() {
   const [aiReviewLoading, setAiReviewLoading] = useState(false)
   const [runError, setRunError] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
+  // C3: track whether blueprint-analyze API call succeeded or fell back to manual
+  const [visionFailed, setVisionFailed] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // H7: clean up interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [])
+
+  // H6: revoke preview object URL on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function update<K extends keyof BlueprintParams>(key: K, value: BlueprintParams[K]) {
     setParams((p) => ({ ...p, [key]: value }))
@@ -85,9 +120,16 @@ export function BlueprintTakeoff() {
     if (!file) return
     setUploadedFile(file)
     if (file.type.startsWith("image/")) {
-      setPreviewUrl(URL.createObjectURL(file))
+      // H6: revoke previous URL before creating a new one
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return URL.createObjectURL(file)
+      })
     } else {
-      setPreviewUrl(null)
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return null
+      })
     }
   }, [])
 
@@ -102,13 +144,17 @@ export function BlueprintTakeoff() {
     if (isRunning) return
     setIsRunning(true)
     setRunError(null)
+    setVisionFailed(false)
     setStep(1)
     setProgress(0)
     setAiReviewText("")
     setAudit(null)
 
-    // Sanitize sqft — NaN/0 falls back to default
-    const safeSqft = params.sqft > 0 && !Number.isNaN(params.sqft) ? params.sqft : DEFAULT_PARAMS.sqft
+    // H5: Clamp sqft — NaN/0/<100 falls back to default; max 50,000
+    const rawSqft = params.sqft
+    const safeSqft = rawSqft > 0 && !Number.isNaN(rawSqft)
+      ? Math.max(100, Math.min(50000, rawSqft))
+      : DEFAULT_PARAMS.sqft
     const safeParams: BlueprintParams = { ...params, sqft: safeSqft }
 
     let aiData: Partial<BlueprintParams> | null = null
@@ -119,33 +165,35 @@ export function BlueprintTakeoff() {
       try {
         const formData = new FormData()
         formData.append("file", uploadedFile)
-        const res = await fetch("/api/ai/blueprint-analyze", { method: "POST", body: formData })
+        // M9: 60-second timeout for blueprint vision analysis
+        const res = await fetchWithTimeout("/api/ai/blueprint-analyze", { method: "POST", body: formData }, 60_000)
         if (res.ok) {
           const json = await res.json()
           const d = json.data ?? {}
           aiData = {
-            sqft: d.totalSqft > 0 ? d.totalSqft : safeParams.sqft,
-            stories: d.stories ?? safeParams.stories,
-            bedrooms: d.bedrooms ?? safeParams.bedrooms,
-            bathrooms: d.bathrooms ?? safeParams.bathrooms,
-            garageSize: d.garageSize ?? safeParams.garageSize,
-            roofType: (d.roofType ?? safeParams.roofType) as BlueprintParams["roofType"],
-            foundationType: (d.foundationType ?? safeParams.foundationType) as BlueprintParams["foundationType"],
+            sqft:          d.totalSqft > 0 ? d.totalSqft : safeParams.sqft,
+            stories:       d.stories       ?? safeParams.stories,
+            bedrooms:      d.bedrooms      ?? safeParams.bedrooms,
+            bathrooms:     d.bathrooms     ?? safeParams.bathrooms,
+            garageSize:    d.garageSize    ?? safeParams.garageSize,
+            roofType:      (d.roofType      ?? safeParams.roofType)      as BlueprintParams["roofType"],
+            foundationType:(d.foundationType ?? safeParams.foundationType) as BlueprintParams["foundationType"],
           }
           setParams((p) => ({ ...p, ...aiData }))
         } else {
           const json = await res.json().catch(() => ({}))
           if (res.status === 403) {
-            // Tier issue — stop and show error
             setIsRunning(false)
             setStep(0)
             setRunError(json.error ?? "Blueprint AI analysis requires a Standard plan or higher.")
             return
           }
-          // Non-fatal API error — fall through to manual params
+          // Non-fatal API error — fall back to manual params, flag it
+          setVisionFailed(true)
         }
       } catch {
-        // Network error — fall through to manual params
+        // Network / timeout error — fall back to manual params, flag it
+        setVisionFailed(true)
       }
       setProgress(20)
     }
@@ -178,15 +226,24 @@ export function BlueprintTakeoff() {
     }, 340)
   }
 
+  // M9: Cancel button handler — clears interval and returns to input
+  function cancelTakeoff() {
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    setIsRunning(false)
+    setStep(0)
+    setProgress(0)
+  }
+
   function reset() {
     if (intervalRef.current) clearInterval(intervalRef.current)
     setIsRunning(false)
     setRunError(null)
+    setVisionFailed(false)
     setStep(0)
     setItems([])
     setAudit(null)
     setUploadedFile(null)
-    setPreviewUrl(null)
+    setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null })
     setProgress(0)
     setAiReviewText("")
     setCategoryFilter("All")
@@ -214,28 +271,73 @@ export function BlueprintTakeoff() {
 
   function exportCSV() {
     const header = "Line,Category,Material,Qty,Unit,Unit Cost,Total,Confidence"
+    // C5: sanitize cat and name to prevent CSV formula injection
     const rows = items.map(
       (it, i) =>
-        `${i + 1},"${it.cat}","${it.name}",${it.quantity},${it.unit},$${it.cost.toFixed(2)},$${it.totalCost.toFixed(2)},${(it.confidence * 100).toFixed(0)}%`
+        `${i + 1},"${sanitizeCSV(it.cat)}","${sanitizeCSV(it.name)}",${it.quantity},${it.unit},$${it.cost.toFixed(2)},$${it.totalCost.toFixed(2)},${(it.confidence * 100).toFixed(0)}%`
     )
-    const mt = items.reduce((s, r) => s + r.totalCost, 0)
+    const mt  = items.reduce((s, r) => s + r.totalCost, 0)
     const csv = [header, ...rows, "", `TOTAL,,,,,,,$${mt.toFixed(2)}`].join("\n")
     const blob = new Blob([csv], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement("a")
+    a.href     = url
     a.download = (params.projectName || "takeoff").replace(/\s/g, "_") + ".csv"
     a.click()
     URL.revokeObjectURL(url)
   }
 
+  // M1: Print-ready PDF report (opens in new tab → browser print dialog)
+  function exportPDF() {
+    const mt  = items.reduce((s, r) => s + r.totalCost, 0)
+    const lab = mt * 1.35
+    const ohp = (mt + lab) * 0.18
+    const gd  = mt + lab + ohp
+    const rows = items
+      .map(
+        (it, i) =>
+          `<tr><td>${i + 1}</td><td>${it.cat}</td><td>${it.name}</td>` +
+          `<td style="text-align:right">${it.quantity.toLocaleString()} ${it.unit}</td>` +
+          `<td style="text-align:right">$${it.cost.toFixed(2)}</td>` +
+          `<td style="text-align:right">$${it.totalCost.toFixed(2)}</td>` +
+          `<td style="text-align:center">${(it.confidence * 100).toFixed(0)}%</td></tr>`
+      )
+      .join("")
+    const html =
+      `<!DOCTYPE html><html><head><title>${params.projectName || "Takeoff"} – EstimAI</title>` +
+      `<style>body{font-family:Arial,sans-serif;font-size:11px;max-width:960px;margin:0 auto;padding:24px}` +
+      `h1{font-size:20px;margin-bottom:4px}p.sub{color:#666;font-size:11px;margin-bottom:16px}` +
+      `table{width:100%;border-collapse:collapse}th,td{padding:5px 8px;border:1px solid #ddd;text-align:left}` +
+      `th{background:#f5f5f5;font-size:10px;text-transform:uppercase;font-weight:600}` +
+      `tfoot tr{font-weight:700;background:#f0f0f0}` +
+      `.footer{color:#aaa;font-size:9px;text-align:center;margin-top:24px}</style></head><body>` +
+      `<h1>${params.projectName || "Residential"} — Material Takeoff</h1>` +
+      `<p class="sub">${params.sqft.toLocaleString()} SF · ${params.bedrooms}BR/${params.bathrooms}BA · ` +
+      `${params.foundationType} foundation · ${params.roofType} roof · ${items.length} items · ` +
+      `Generated ${new Date().toLocaleDateString()}</p>` +
+      `<table><thead><tr><th>#</th><th>Trade</th><th>Material</th><th>Qty</th><th>Unit $</th><th>Total</th><th>Conf</th></tr></thead>` +
+      `<tbody>${rows}</tbody>` +
+      `<tfoot><tr><td colspan="3">Materials subtotal</td><td></td><td></td><td style="text-align:right">$${mt.toFixed(2)}</td><td></td></tr>` +
+      `<tr><td colspan="3">Labor &amp; Installation (1.35×)</td><td></td><td></td><td style="text-align:right">$${lab.toFixed(2)}</td><td></td></tr>` +
+      `<tr><td colspan="3">Overhead &amp; Profit (18%)</td><td></td><td></td><td style="text-align:right">$${ohp.toFixed(2)}</td><td></td></tr>` +
+      `<tr style="background:#e8e8e8"><td colspan="3"><strong>GRAND TOTAL</strong></td><td></td><td></td>` +
+      `<td style="text-align:right"><strong>$${gd.toFixed(2)}</strong></td><td></td></tr></tfoot></table>` +
+      `<p class="footer">EstimAI Blueprint Takeoff · AI-Powered · 7-Layer Validated</p></body></html>`
+    const w = window.open("", "_blank")
+    if (w) {
+      w.document.write(html)
+      w.document.close()
+      w.onload = () => w.print()
+    }
+  }
+
   async function sendToEstimate() {
     setSendingToEstimate(true)
     try {
-      const res = await fetch("/api/ai/blueprint-to-estimate", {
-        method: "POST",
+      const res  = await fetch("/api/ai/blueprint-to-estimate", {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, projectInfo: params }),
+        body:    JSON.stringify({ items, projectInfo: params }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error)
@@ -256,11 +358,12 @@ export function BlueprintTakeoff() {
       `Review for: missing items, wrong quantities, code issues, duplicates. Be specific and concise.`
 
     try {
-      const res = await fetch("/api/ai/wizard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: summary }),
-      })
+      // M9: 20-second timeout for AI review
+      const res  = await fetchWithTimeout(
+        "/api/ai/wizard",
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: summary }) },
+        20_000
+      )
       const json = await res.json()
       setAiReviewText(json.answer ?? json.reply ?? "AI review unavailable.")
     } catch {
@@ -271,19 +374,19 @@ export function BlueprintTakeoff() {
 
   // Derived values
   const categories = items.length ? ["All", ...Array.from(new Set(items.map((r) => r.cat)))] : []
-  const filtered = categoryFilter === "All" ? items : items.filter((r) => r.cat === categoryFilter)
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === "cost") return b.totalCost - a.totalCost
+  const filtered   = categoryFilter === "All" ? items : items.filter((r) => r.cat === categoryFilter)
+  const sorted     = [...filtered].sort((a, b) => {
+    if (sortBy === "cost")       return b.totalCost - a.totalCost
     if (sortBy === "confidence") return a.confidence - b.confidence
-    if (sortBy === "flags") return ((audit?.itemFlags[a.lid] ? 0 : 1) - (audit?.itemFlags[b.lid] ? 0 : 1))
+    if (sortBy === "flags")      return ((audit?.itemFlags[a.lid] ? 0 : 1) - (audit?.itemFlags[b.lid] ? 0 : 1))
     return a.cat.localeCompare(b.cat)
   })
 
   const materialTotal = items.reduce((s, r) => s + r.totalCost, 0)
-  const laborTotal = materialTotal * 1.35
-  const ohp = (materialTotal + laborTotal) * 0.18
-  const grandTotal = materialTotal + laborTotal + ohp
-  const psf = grandTotal / (params.sqft || 1)
+  const laborTotal    = materialTotal * 1.35
+  const ohp           = (materialTotal + laborTotal) * 0.18
+  const grandTotal    = materialTotal + laborTotal + ohp
+  const psf           = grandTotal / (params.sqft || 1)
 
   const catTotals: Record<string, number> = {}
   items.forEach((r) => { catTotals[r.cat] = (catTotals[r.cat] ?? 0) + r.totalCost })
@@ -346,7 +449,11 @@ export function BlueprintTakeoff() {
                       {uploadedFile.name.toLowerCase().endsWith(".pdf") || uploadedFile.type === "application/pdf" ? "PDF Blueprint" : "Image"} · Ready for AI
                     </p>
                     {previewUrl && (
-                      <img src={previewUrl} alt="preview" className="max-h-28 mx-auto mt-3 rounded-lg opacity-80 object-contain" />
+                      <img
+                        src={previewUrl}
+                        alt="Blueprint preview"
+                        className="max-h-28 mx-auto mt-3 rounded-lg opacity-80 object-contain"
+                      />
                     )}
                     {(uploadedFile.name.toLowerCase().endsWith(".pdf") || uploadedFile.type === "application/pdf") && (
                       <p className="text-4xl mt-3 opacity-50">📄</p>
@@ -395,11 +502,23 @@ export function BlueprintTakeoff() {
                   </div>
                   <div>
                     <label className="block text-[11px] font-medium text-foreground/70 mb-1.5">Sq Ft</label>
+                    {/* H5: clamp on change; enforce minimum on blur */}
                     <input
                       type="number"
+                      min={100}
+                      max={50000}
                       className={fieldCls}
                       value={params.sqft}
-                      onChange={(e) => update("sqft", +e.target.value)}
+                      onChange={(e) => {
+                        let v = +e.target.value
+                        if (v > 50000) v = 50000
+                        if (v < 0)     v = 0
+                        update("sqft", v)
+                      }}
+                      onBlur={(e) => {
+                        const v = +e.target.value
+                        if (!v || v < 100) update("sqft", 100)
+                      }}
                     />
                   </div>
                 </div>
@@ -500,6 +619,7 @@ export function BlueprintTakeoff() {
           <button
             onClick={runTakeoff}
             disabled={isRunning}
+            aria-label="Generate and audit takeoff"
             className="flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold text-[15px] shadow-lg shadow-blue-500/25 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:hover:translate-y-0 disabled:cursor-not-allowed"
           >
             {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -527,7 +647,15 @@ export function BlueprintTakeoff() {
         </div>
 
         <div className="text-center py-10">
-          <div className="relative w-36 h-36 mx-auto mb-8">
+          {/* L1: role="progressbar" + aria-valuenow for screen readers */}
+          <div
+            role="progressbar"
+            aria-valuenow={progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Analysis progress: ${progress}%`}
+            className="relative w-36 h-36 mx-auto mb-8"
+          >
             <svg width="144" height="144" viewBox="0 0 144 144" className="absolute inset-0">
               <defs>
                 <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -584,6 +712,14 @@ export function BlueprintTakeoff() {
               AI extraction complete — computing {items.length > 0 ? "takeoff adjustments" : "material quantities"} &amp; running 7-layer audit…
             </p>
           )}
+
+          {/* M9: Cancel button */}
+          <button
+            onClick={cancelTakeoff}
+            className="mt-8 flex items-center gap-2 px-5 py-2 rounded-lg border border-card-border text-muted text-[12.5px] font-medium hover:border-gray-300 hover:text-foreground transition-colors mx-auto"
+          >
+            <X className="h-3.5 w-3.5" /> Cancel
+          </button>
         </div>
       </div>
     )
@@ -616,9 +752,15 @@ export function BlueprintTakeoff() {
               Audit: {audit.grade} ({audit.score}/100)
             </span>
           )}
-          {uploadedFile && (
+          {/* C3: show appropriate badge based on whether vision succeeded */}
+          {uploadedFile && !visionFailed && (
             <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
               🤖 AI Vision
+            </span>
+          )}
+          {uploadedFile && visionFailed && (
+            <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+              ⚠ Manual Fallback
             </span>
           )}
           <button
@@ -783,10 +925,10 @@ export function BlueprintTakeoff() {
           {/* Summary cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
             {[
-              { label: "Materials", value: fmt(materialTotal), sub: `${items.length} items` },
-              { label: "Labor (1.35×)", value: fmt(laborTotal), sub: "Installation" },
-              { label: "OH&P (18%)", value: fmt(ohp), sub: "Overhead & profit" },
-              { label: "Grand Total", value: fmt(grandTotal), sub: `${fmt2(psf)}/SF`, gradient: true },
+              { label: "Materials",    value: fmt(materialTotal), sub: `${items.length} items` },
+              { label: "Labor (1.35×)", value: fmt(laborTotal),    sub: "Installation" },
+              { label: "OH&P (18%)",   value: fmt(ohp),            sub: "Overhead & profit" },
+              { label: "Grand Total",  value: fmt(grandTotal),     sub: `${fmt2(psf)}/SF`, gradient: true },
             ].map((card, i) => (
               <div key={i} className="bg-card border border-card-border rounded-xl p-4 relative overflow-hidden">
                 <div className="absolute top-0 left-0 right-0 h-0.5" style={{
@@ -824,6 +966,14 @@ export function BlueprintTakeoff() {
               ))}
             </div>
           </div>
+
+          {/* M6: flooring note when takeoff is spec-based (no AI blueprint) */}
+          {!uploadedFile && (
+            <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-[11.5px] text-blue-700">
+              <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+              <span>Flooring split (carpet / tile / LVP) is estimated from room counts. Upload a blueprint or adjust quantities in the table for your actual layout.</span>
+            </div>
+          )}
 
           {/* Category filter & sort */}
           <div>
@@ -865,8 +1015,13 @@ export function BlueprintTakeoff() {
             <table className="w-full min-w-[680px]">
               <thead>
                 <tr className="border-b border-card-border bg-gray-50">
+                  {/* L1: scope="col" on all th elements */}
                   {["Material", "Qty", "Unit $", "Conf", "Total", ""].map((h, i) => (
-                    <th key={i} className={`px-4 py-3 text-[10px] font-semibold tracking-wider text-muted uppercase text-left ${i === 4 ? "text-right" : ""} ${i === 5 ? "w-14 text-center" : ""}`}>
+                    <th
+                      key={i}
+                      scope="col"
+                      className={`px-4 py-3 text-[10px] font-semibold tracking-wider text-muted uppercase text-left ${i === 4 ? "text-right" : ""} ${i === 5 ? "w-14 text-center" : ""}`}
+                    >
                       {h}
                     </th>
                   ))}
@@ -880,7 +1035,7 @@ export function BlueprintTakeoff() {
                       key={it.lid}
                       className={`border-b border-card-border hover:bg-gray-50 transition-colors ${
                         flagType === "error" ? "border-l-2 border-l-red-500" :
-                        flagType === "warn" ? "border-l-2 border-l-amber-500" : ""
+                        flagType === "warn"  ? "border-l-2 border-l-amber-500" : ""
                       }`}
                     >
                       <td className="px-4 py-2.5">
@@ -933,14 +1088,17 @@ export function BlueprintTakeoff() {
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1.5 justify-center">
+                          {/* L1: aria-label on icon-only buttons */}
                           <button
                             onClick={() => setEditingId(it.lid)}
+                            aria-label="Edit quantity"
                             className="p-1 rounded hover:bg-gray-100 text-muted hover:text-foreground transition-colors"
                           >
                             <Pencil className="h-3 w-3" />
                           </button>
                           <button
                             onClick={() => removeItem(it.lid)}
+                            aria-label="Remove item"
                             className="p-1 rounded hover:bg-red-50 text-muted hover:text-red-600 transition-colors"
                           >
                             <X className="h-3 w-3" />
@@ -966,6 +1124,13 @@ export function BlueprintTakeoff() {
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-card-border text-muted text-[12.5px] font-medium hover:border-gray-300 hover:text-foreground transition-colors"
               >
                 <Download className="h-3.5 w-3.5" /> CSV
+              </button>
+              {/* M1: PDF export button */}
+              <button
+                onClick={exportPDF}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-card-border text-muted text-[12.5px] font-medium hover:border-gray-300 hover:text-foreground transition-colors"
+              >
+                <Printer className="h-3.5 w-3.5" /> PDF
               </button>
               <button
                 onClick={sendToEstimate}
